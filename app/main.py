@@ -1,8 +1,9 @@
 import time
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 
-from app.models import ServiceInfo
+from app.models import ServiceInfo, CanonicalJob
+from app.sources.greenhouse import fetch_greenhouse_jobs
 
 START_TIME = time.time()
 VERSION = "0.1.0"
@@ -18,3 +19,16 @@ def health():
         uptime_seconds=int(time.time() - START_TIME),
         version=VERSION,
     )
+
+@app.get("/sources/greenhouse", response_model=list[CanonicalJob])
+async def greenhouse(
+    board: str = Query(
+        ...,
+        description="Greenhouse board token (ex: 'stripe' from boards.greenhouse.io/stripe)",
+    ),
+    company: str = Query(
+        ...,
+        description="Company name (ex: 'Stripe')",
+    ),
+) -> list[CanonicalJob]:
+    return await fetch_greenhouse_jobs(board_token=board, company=company)
