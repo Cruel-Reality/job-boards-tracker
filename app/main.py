@@ -2,7 +2,7 @@ import time
 
 from fastapi import FastAPI
 
-from models import ServiceInfo
+from app.models import ServiceInfo
 
 START_TIME = time.time()
 VERSION = "0.1.0"
