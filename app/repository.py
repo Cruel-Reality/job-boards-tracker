@@ -37,3 +37,13 @@ def get_jobs(company: str | None = None, limit: int = 25) -> list[JobPosting]:
         return q.order_by(JobPosting.id.desc()).limit(limit).all()
     finally:
         session.close()
+
+
+def get_job(db_id: int) -> JobPosting | None:
+    session = get_session()
+    try:
+        q = session.query(JobPosting)
+        q = q.filter(JobPosting.id == db_id)
+        return q.first()
+    finally:
+        session.close()
