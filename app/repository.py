@@ -25,3 +25,15 @@ def upsert_job(job):
         session.rollback()
     finally:
         session.close()
+
+
+def get_jobs(company: str | None = None, limit: int = 25) -> list[JobPosting]:
+    limit = max(1, min(limit, 100))
+    session = get_session()
+    try:
+        q = session.query(JobPosting)
+        if company:
+            q = q.filter(JobPosting.company == company)
+        return q.order_by(JobPosting.id.desc()).limit(limit).all()
+    finally:
+        session.close()
