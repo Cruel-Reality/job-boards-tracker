@@ -2,7 +2,8 @@ import time
 
 from fastapi import FastAPI, Query
 
-from app.models import ServiceInfo, CanonicalJob
+from app.models import CanonicalJob, ServiceInfo
+from app.repository import upsert_job
 from app.sources.greenhouse import fetch_greenhouse_jobs
 
 START_TIME = time.time()
@@ -20,6 +21,7 @@ def health():
         version=VERSION,
     )
 
+
 @app.get("/sources/greenhouse", response_model=list[CanonicalJob])
 async def greenhouse(
     board: str = Query(
@@ -31,4 +33,7 @@ async def greenhouse(
         description="Company name (ex: 'Stripe')",
     ),
 ) -> list[CanonicalJob]:
-    return await fetch_greenhouse_jobs(board_token=board, company=company)
+    jobs = await fetch_greenhouse_jobs(board_token=board, company=company)
+    for job in jobs:
+        upsert_job(job)
+    return jobs
