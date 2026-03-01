@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel
 
 
@@ -13,6 +15,8 @@ class CanonicalJob(BaseModel):
     salary_max: int | None = None
     currency: str | None = None
     is_remote: bool | None = None
+    created_at: datetime | None = None
+    updaated_at: datetime | None = None
 
 
 class ServiceInfo(BaseModel):
