@@ -24,3 +24,24 @@ class ServiceInfo(BaseModel):
     service: str
     uptime_seconds: int
     version: str
+
+
+class CompanyBase(BaseModel):
+    source: str
+    company: str
+    board: str
+    sector: str | None = None
+    size: str | None = None
+
+
+class CompanyCreate(CompanyBase):
+    pass
+
+
+class CompanyOut(CompanyBase):
+    id: int
+    created_at: str
+    updated_at: str
+
+    class Config:
+        orm_mode = True
