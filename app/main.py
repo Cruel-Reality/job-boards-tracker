@@ -41,25 +41,10 @@ async def greenhouse(
 
 @app.get("/jobs", response_model=list[CanonicalJob])
 def jobs(
-    company: str | None = Query(None, description="Filter by company ex: 'Stripe')"),
+    company: str | None = Query(None, description="Filter by company ex: 'Stripe'"),
     limit: int = Query(25, ge=1, le=100),
 ) -> list[CanonicalJob]:
-    rows = get_jobs(company=company, limit=limit)
-    return [
-        CanonicalJob(
-            source=r.source,
-            source_job_id=r.source_job_id,
-            company=r.company,
-            title=r.title,
-            url=r.url,
-            location=r.location,
-            currency=r.currency,
-            salary_min=r.salary_min,
-            salary_max=r.salary_max,
-            is_remote=r.is_remote,
-        )
-        for r in rows
-    ]
+    return get_jobs(company=company, limit=limit)
 
 
 @app.get("/jobs/{db_id}", response_model=CanonicalJob)
@@ -71,15 +56,4 @@ def job(
     if job is None:
         raise HTTPException(status_code=404, detail=f"No job with id: {db_id} found")
 
-    return CanonicalJob(
-        source=job.source,
-        source_job_id=job.source_job_id,
-        company=job.company,
-        title=job.title,
-        url=job.url,
-        location=job.location,
-        currency=job.currency,
-        salary_min=job.salary_min,
-        salary_max=job.salary_max,
-        is_remote=job.is_remote,
-    )
+    return job
