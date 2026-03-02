@@ -1,9 +1,13 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
+
+from app.orm_models import SectorEnum, SizeEnum
 
 
 class CanonicalJob(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     source: str
     source_job_id: str
     company: str
@@ -16,7 +20,7 @@ class CanonicalJob(BaseModel):
     currency: str | None = None
     is_remote: bool | None = None
     created_at: datetime | None = None
-    updaated_at: datetime | None = None
+    updated_at: datetime | None = None
 
 
 class ServiceInfo(BaseModel):
@@ -30,8 +34,8 @@ class CompanyBase(BaseModel):
     source: str
     company: str
     board: str
-    sector: str | None = None
-    size: str | None = None
+    sector: SectorEnum | None = None
+    size: SizeEnum | None = None
 
 
 class CompanyCreate(CompanyBase):
@@ -39,9 +43,8 @@ class CompanyCreate(CompanyBase):
 
 
 class CompanyOut(CompanyBase):
-    id: int
-    created_at: str
-    updated_at: str
+    model_config = ConfigDict(from_attributes=True)
 
-    class Config:
-        orm_mode = True
+    id: int
+    created_at: datetime
+    updated_at: datetime
