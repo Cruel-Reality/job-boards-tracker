@@ -90,15 +90,11 @@ def add_company(company_in: CompanyCreate) -> Company | None:
         session.close()
 
 
-def get_company_by_company_and_source_and_board(
-    company: str, source: str, board: str
-) -> Company | None:
+def get_companies(limit: int) -> list[Company]:
     session = get_session()
+    limit = max(1, min(limit, 500))
     try:
         q = session.query(Company)
-        q = q.filter(
-            Company.company == company, Company.source == source, Company.board == board
-        )
-        return q.one_or_none()
+        return q.order_by(Company.company.asc()).limit(limit).all()
     finally:
         session.close()
