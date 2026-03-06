@@ -1,9 +1,9 @@
 import time
 
-from fastapi import FastAPI, HTTPException, Path, Query
+from fastapi import FastAPI, HTTPException, Path, Query, status
 
-from app.models import CanonicalJob, CompanyOut, ServiceInfo
-from app.repository import get_companies, get_job, get_jobs, upsert_job
+from app.models import CanonicalJob, CompanyCreate, CompanyOut, ServiceInfo
+from app.repository import add_company, get_companies, get_job, get_jobs, upsert_job
 from app.sources.greenhouse import fetch_greenhouse_jobs
 
 START_TIME = time.time()
@@ -63,3 +63,14 @@ def job(
 @app.get("/companies", response_model=list[CompanyOut])
 def companies(limit: int = Query(100, ge=1, le=500)) -> list[CompanyOut]:
     return get_companies(limit=limit)
+
+
+@app.post("/company", response_model=CompanyOut, status_code=status.HTTP_201_CREATED)
+def create_company(company: CompanyCreate):
+    new_company = add_company(company)
+    if new_company is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Company with this source and board already exists",
+        )
+    return new_company
