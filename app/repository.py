@@ -5,40 +5,41 @@ from app.models import CompanyCreate
 from app.orm_models import Company, JobPosting
 
 
-def upsert_job(job):
+def upsert_jobs(jobs):
     session = get_session()
     try:
-        existing = (
-            session.query(JobPosting)
-            .filter(
-                JobPosting.source == job.source,
-                JobPosting.source_job_id == job.source_job_id,
+        for job in jobs:
+            existing = (
+                session.query(JobPosting)
+                .filter(
+                    JobPosting.source == job.source,
+                    JobPosting.source_job_id == job.source_job_id,
+                )
+                .one_or_none()
             )
-            .one_or_none()
-        )
-        if existing:
-            existing.company = job.company
-            existing.title = job.title
-            existing.url = job.url
-            existing.location = job.location
-            existing.currency = job.currency
-            existing.salary_min = job.salary_min
-            existing.salary_max = job.salary_max
-            existing.is_remote = job.is_remote
-        else:
-            db_job = JobPosting(
-                source=job.source,
-                source_job_id=job.source_job_id,
-                company=job.company,
-                title=job.title,
-                url=job.url,
-                location=job.location,
-                currency=job.currency,
-                salary_min=job.salary_min,
-                salary_max=job.salary_max,
-                is_remote=job.is_remote,
-            )
-            session.add(db_job)
+            if existing:
+                existing.company = job.company
+                existing.title = job.title
+                existing.url = job.url
+                existing.location = job.location
+                existing.currency = job.currency
+                existing.salary_min = job.salary_min
+                existing.salary_max = job.salary_max
+                existing.is_remote = job.is_remote
+            else:
+                db_job = JobPosting(
+                    source=job.source,
+                    source_job_id=job.source_job_id,
+                    company=job.company,
+                    title=job.title,
+                    url=job.url,
+                    location=job.location,
+                    currency=job.currency,
+                    salary_min=job.salary_min,
+                    salary_max=job.salary_max,
+                    is_remote=job.is_remote,
+                )
+                session.add(db_job)
         session.commit()
     except IntegrityError:
         session.rollback()

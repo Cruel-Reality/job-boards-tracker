@@ -3,7 +3,7 @@ import time
 from fastapi import FastAPI, HTTPException, Path, Query, status
 
 from app.models import CanonicalJob, CompanyCreate, CompanyOut, ServiceInfo
-from app.repository import add_company, get_companies, get_job, get_jobs, upsert_job
+from app.repository import add_company, get_companies, get_job, get_jobs, upsert_jobs
 from app.sources.greenhouse import fetch_greenhouse_jobs
 
 START_TIME = time.time()
@@ -22,7 +22,6 @@ def health():
     )
 
 
-# TODO modify upsert_jobs to take a list so that it is not opening a new session constantly and does one query vs one SELECT per job
 @app.get("/sources/greenhouse", response_model=list[CanonicalJob])
 async def greenhouse(
     board: str = Query(
@@ -35,8 +34,7 @@ async def greenhouse(
     ),
 ) -> list[CanonicalJob]:
     jobs = await fetch_greenhouse_jobs(board_token=board, company=company)
-    for job in jobs:
-        upsert_job(job)
+    upsert_jobs(jobs)
     return jobs
 
 
