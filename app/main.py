@@ -9,6 +9,10 @@ from app.sources.greenhouse import fetch_greenhouse_jobs
 START_TIME = time.time()
 VERSION = "0.1.0"
 
+SOURCE_FETCHERS = {
+    "greenhouse": fetch_greenhouse_jobs,
+}
+
 app = FastAPI(title="Job Board Tracker")
 
 
@@ -72,3 +76,41 @@ def create_company(company: CompanyCreate):
             detail="Company with this source and board already exists",
         )
     return new_company
+
+
+@app.post("/ingest/all")
+async def ingest_all():
+    # temp cap to avoid runaway ingestion
+    companies = get_companies(limit=500)
+
+    total_jobs = 0
+    successful_companies = 0
+    failed_companies = []
+
+    for company in companies:
+        fetcher = SOURCE_FETCHERS.get(company.source)
+        if fetcher is None:
+            continue
+        try:
+            jobs = await fetcher(
+                board_token=company.board,
+                company=company.company,
+            )
+            upsert_jobs(jobs)
+            total_jobs += len(jobs)
+            successful_companies += 1
+        except Exception:
+            failed_companies.append(
+                {
+                    "company": company.company,
+                    "source": company.source,
+                    "board": company.board,
+                }
+            )
+            continue
+
+    return {
+        "successful_companies": successful_companies,
+        "jobs_fetched": total_jobs,
+        "failed_companies": failed_companies,
+    }
