@@ -61,7 +61,7 @@ class Company(Base):
     board: Mapped[str] = mapped_column(String, nullable=False)
 
     sector: Mapped[SectorEnum | None] = mapped_column(Enum(SectorEnum), nullable=True)
-    size: Mapped[str | None] = mapped_column(Enum(SizeEnum), nullable=True)
+    size: Mapped[SizeEnum | None] = mapped_column(Enum(SizeEnum), nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
     updated_at: Mapped[datetime] = mapped_column(

@@ -3,7 +3,14 @@ import time
 from fastapi import FastAPI, HTTPException, Path, Query, status
 
 from app.models import CanonicalJob, CompanyCreate, CompanyOut, ServiceInfo
-from app.repository import add_company, get_companies, get_job, get_jobs, upsert_jobs
+from app.repository import (
+    add_company,
+    delete_company_by_id,
+    get_companies,
+    get_job,
+    get_jobs,
+    upsert_jobs,
+)
 from app.sources.greenhouse import fetch_greenhouse_jobs
 
 START_TIME = time.time()
@@ -57,7 +64,9 @@ def job(
     job = get_job(db_id=db_id)
 
     if job is None:
-        raise HTTPException(status_code=404, detail=f"No job with id: {db_id} found")
+        raise HTTPException(
+            status_code=404, detail=f"No job with id: {db_id} not found"
+        )
 
     return job
 
@@ -114,3 +123,16 @@ async def ingest_all():
         "jobs_fetched": total_jobs,
         "failed_companies": failed_companies,
     }
+
+
+@app.delete("/companies/{db_id}")
+def delete_company(db_id: int):
+
+    deleted = delete_company_by_id(db_id)
+
+    if not deleted:
+        raise HTTPException(
+            status_code=404, detail=f"No company with id: {db_id} not found"
+        )
+
+    return {"status": "deleted"}

@@ -99,3 +99,23 @@ def get_companies(limit: int) -> list[Company]:
         return q.order_by(Company.company.asc()).limit(limit).all()
     finally:
         session.close()
+
+
+def delete_company_by_id(db_id: int) -> bool:
+    session = get_session()
+    try:
+        company = session.query(Company).filter(Company.id == db_id).one_or_none()
+
+        if company is None:
+            return False
+
+        session.query(JobPosting).filter(
+            JobPosting.company == company.company, JobPosting.source == company.source
+        ).delete()
+
+        session.delete(company)
+        session.commit()
+        return True
+
+    finally:
+        session.close()
