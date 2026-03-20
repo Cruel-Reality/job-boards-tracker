@@ -1,7 +1,16 @@
 from datetime import datetime
 from enum import Enum as PyEnum
 
-from sqlalchemy import Boolean, DateTime, Enum, Integer, String, Text, UniqueConstraint
+from sqlalchemy import (
+    Boolean,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 
@@ -67,3 +76,28 @@ class Company(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=func.now(), onupdate=func.now()
     )
+
+
+class JobStatusEnum(PyEnum):
+    applied = "applied"
+    unapplied = "unapplied"
+    rejected = "rejected"
+    offer = "offer"
+
+
+class JobApplication(Base):
+    __tablename__ = "job_applications"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    job_posting_id: Mapped[int] = mapped_column(
+        ForeignKey("job_postings.id"), nullable=False, unique=True
+    )
+    status: Mapped[JobStatusEnum] = mapped_column(
+        Enum(JobStatusEnum), nullable=False, default=JobStatusEnum.unapplied
+    )
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=func.now(), onupdate=func.now()
+    )
+    applied_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
