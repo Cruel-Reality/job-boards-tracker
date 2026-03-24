@@ -1,8 +1,8 @@
 from sqlalchemy.exc import IntegrityError
 
 from app.db import get_session
-from app.models import CompanyCreate
-from app.orm_models import Company, JobPosting
+from app.models import CompanyCreate, JobApplicationCreate
+from app.orm_models import Company, JobPosting, JobApplication
 
 
 def upsert_jobs(jobs):
@@ -117,5 +117,34 @@ def delete_company_by_id(db_id: int) -> bool:
         session.commit()
         return True
 
+    finally:
+        session.close()
+
+def add_application(app_in: JobApplicationCreate) -> JobApplication | None:
+    session = get_session()
+    try:
+        job = session.query(JobPosting).filter(
+            JobPosting.id == app_in.job_posting_id
+        ).one_or_none()
+        
+        if job is None:
+            return None
+        
+        db_app = JobApplication(
+            job_posting_id=app_in.job_posting_id,
+            status=app_in.status,
+            notes=app_in.notes,
+            applied_at=app_in.applied_at,
+        )
+        
+        session.add(db_app)
+        session.commit()
+        session.refresh(db_app)
+        return db_app
+    
+    except IntegrityError:
+        session.rollback()
+        return "duplicate"
+    
     finally:
         session.close()

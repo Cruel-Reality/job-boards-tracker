@@ -2,7 +2,15 @@ import time
 
 from fastapi import FastAPI, HTTPException, Path, Query, status
 
-from app.models import CanonicalJob, CompanyCreate, CompanyOut, ServiceInfo
+from app.models import (
+    CanonicalJob,
+    CompanyCreate,
+    CompanyOut,
+    ServiceInfo,
+    JobApplicationCreate,
+    JobApplicationOut,
+)
+
 from app.repository import (
     add_company,
     delete_company_by_id,
@@ -10,7 +18,9 @@ from app.repository import (
     get_job,
     get_jobs,
     upsert_jobs,
+    add_application,
 )
+
 from app.sources.greenhouse import fetch_greenhouse_jobs
 
 START_TIME = time.time()
@@ -136,3 +146,15 @@ def delete_company(db_id: int):
         )
 
     return {"status": "deleted"}
+
+@app.post("/applications", response_model=JobApplicationOut)
+def create_application(app_in: JobApplicationCreate):
+    new_app = add_application(app_in)
+    
+    if new_app is None:
+        raise HTTPException(status_code=404,detail="Job not found")
+
+    if new_app == "duplicate":
+        raise HTTPException(status_code=400, detail="Application already exists for this job")
+    
+    return new_app
