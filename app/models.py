@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
 
-from app.orm_models import SectorEnum, SizeEnum
+from app.orm_models import SectorEnum, SizeEnum, JobStatusEnum
 
 
 class CanonicalJob(BaseModel):
@@ -48,3 +48,18 @@ class CompanyOut(CompanyBase):
     id: int
     created_at: datetime
     updated_at: datetime
+
+class JobApplicationBase(BaseModel):
+    job_posting_id : int
+    status: JobStatusEnum
+    notes: str | None = None
+    applied_at: datetime | None = None 
+
+class JobApplicationCreate(JobApplicationBase):
+    pass 
+
+class JobApplicationOut(JobApplicationBase):
+    id: int
+    created_at: datetime
+    updated_at: datetime
+    
