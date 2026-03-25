@@ -2,7 +2,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.db import get_session
 from app.models import CompanyCreate, JobApplicationCreate
-from app.orm_models import Company, JobPosting, JobApplication
+from app.orm_models import Company, JobPosting, JobApplication, JobStatusEnum
 
 
 def upsert_jobs(jobs):
@@ -145,6 +145,21 @@ def add_application(app_in: JobApplicationCreate) -> JobApplication | None:
     except IntegrityError:
         session.rollback()
         return "duplicate"
+    
+    finally:
+        session.close()
+
+def get_applications(limit: int, status: JobStatusEnum | None = None) -> list[JobApplication]:
+    limit = max(1,min(limit,500))
+    session = get_session()
+    
+    try:
+        query = session.query(JobApplication)
+        
+        if status is not None:
+            query = query.filter(JobApplication.status == status)
+        
+        return query.limit(limit).all()
     
     finally:
         session.close()

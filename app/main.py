@@ -19,7 +19,10 @@ from app.repository import (
     get_jobs,
     upsert_jobs,
     add_application,
+    get_applications,
 )
+
+from app.orm_models import JobStatusEnum
 
 from app.sources.greenhouse import fetch_greenhouse_jobs
 
@@ -158,3 +161,7 @@ def create_application(app_in: JobApplicationCreate):
         raise HTTPException(status_code=400, detail="Application already exists for this job")
     
     return new_app
+
+@app.get("/applications", response_model=list[JobApplicationOut])
+def read_applications(limit: int = 100, status: JobStatusEnum | None = None):
+    return get_applications(limit,status)
