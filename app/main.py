@@ -6,24 +6,21 @@ from app.models import (
     CanonicalJob,
     CompanyCreate,
     CompanyOut,
-    ServiceInfo,
     JobApplicationCreate,
     JobApplicationOut,
+    ServiceInfo,
 )
-
+from app.orm_models import JobStatusEnum
 from app.repository import (
+    add_application,
     add_company,
     delete_company_by_id,
+    get_applications,
     get_companies,
     get_job,
     get_jobs,
     upsert_jobs,
-    add_application,
-    get_applications,
 )
-
-from app.orm_models import JobStatusEnum
-
 from app.sources.greenhouse import fetch_greenhouse_jobs
 
 START_TIME = time.time()
@@ -77,9 +74,7 @@ def job(
     job = get_job(db_id=db_id)
 
     if job is None:
-        raise HTTPException(
-            status_code=404, detail=f"No job with id: {db_id} not found"
-        )
+        raise HTTPException(status_code=404, detail=f"No job with id: {db_id} found")
 
     return job
 
@@ -145,23 +140,27 @@ def delete_company(db_id: int):
 
     if not deleted:
         raise HTTPException(
-            status_code=404, detail=f"No company with id: {db_id} not found"
+            status_code=404, detail=f"No company with id: {db_id} found"
         )
 
     return {"status": "deleted"}
 
+
 @app.post("/applications", response_model=JobApplicationOut)
 def create_application(app_in: JobApplicationCreate):
     new_app = add_application(app_in)
-    
+
     if new_app is None:
-        raise HTTPException(status_code=404,detail="Job not found")
+        raise HTTPException(status_code=404, detail="Job not found")
 
     if new_app == "duplicate":
-        raise HTTPException(status_code=400, detail="Application already exists for this job")
-    
+        raise HTTPException(
+            status_code=400, detail="Application already exists for this job"
+        )
+
     return new_app
+
 
 @app.get("/applications", response_model=list[JobApplicationOut])
 def read_applications(limit: int = 100, status: JobStatusEnum | None = None):
-    return get_applications(limit,status)
+    return get_applications(limit, status)
