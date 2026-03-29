@@ -8,6 +8,7 @@ from app.models import (
     CompanyOut,
     JobApplicationCreate,
     JobApplicationOut,
+    JobApplicationUpdate,
     ServiceInfo,
 )
 from app.orm_models import JobStatusEnum
@@ -19,6 +20,7 @@ from app.repository import (
     get_companies,
     get_job,
     get_jobs,
+    update_application,
     upsert_jobs,
 )
 from app.sources.greenhouse import fetch_greenhouse_jobs
@@ -164,3 +166,15 @@ def create_application(app_in: JobApplicationCreate):
 @app.get("/applications", response_model=list[JobApplicationOut])
 def read_applications(limit: int = 100, status_filter: JobStatusEnum | None = None):
     return get_applications(limit, status_filter)
+
+
+@app.patch("/applications/{application_id}", response_model=JobApplicationOut)
+def patch_application(application_id: int, app_update: JobApplicationUpdate):
+    updated_app = update_application(application_id, app_update)
+
+    if updated_app is None:
+        raise HTTPException(
+            status_code=404, detail=f"No application with id: {application_id} found"
+        )
+
+    return updated_app

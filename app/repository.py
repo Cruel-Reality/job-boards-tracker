@@ -1,7 +1,7 @@
 from sqlalchemy.exc import IntegrityError
 
 from app.db import get_session
-from app.models import CompanyCreate, JobApplicationCreate
+from app.models import CompanyCreate, JobApplicationCreate, JobApplicationUpdate
 from app.orm_models import Company, JobApplication, JobPosting, JobStatusEnum
 
 
@@ -181,6 +181,34 @@ def get_applications(
             query = query.filter(JobApplication.status == status)
 
         return query.limit(limit).all()
+
+    finally:
+        session.close()
+
+
+def update_application(
+    application_id: int, app_update: JobApplicationUpdate
+) -> JobApplication | None:
+    session = get_session()
+
+    try:
+        db_app = (
+            session.query(JobApplication)
+            .filter(JobApplication.id == application_id)
+            .one_or_none()
+        )
+
+        if db_app is None:
+            return None
+
+        update_data = app_update.model_dump(exclude_unset=True)
+
+        for field, val in update_data.items():
+            setattr(db_app, field, val)
+
+        session.commit()
+        session.refresh(db_app)
+        return db_app
 
     finally:
         session.close()
