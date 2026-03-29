@@ -2,7 +2,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.db import get_session
 from app.models import CompanyCreate, JobApplicationCreate
-from app.orm_models import Company, JobPosting, JobApplication, JobStatusEnum
+from app.orm_models import Company, JobApplication, JobPosting, JobStatusEnum
 
 
 def upsert_jobs(jobs):
@@ -109,6 +109,21 @@ def delete_company_by_id(db_id: int) -> bool:
         if company is None:
             return False
 
+        # get IDs of postings being deleted, then delete their applications first
+        posting_ids = [
+            row.id
+            for row in session.query(JobPosting.id)
+            .filter(
+                JobPosting.company == company.company,
+                JobPosting.source == company.source,
+            )
+            .all()
+        ]
+
+        session.query(JobApplication).filter(
+            JobApplication.job_posting_id.in_(posting_ids)
+        ).delete(synchronize_session=False)
+
         session.query(JobPosting).filter(
             JobPosting.company == company.company, JobPosting.source == company.source
         ).delete()
@@ -120,46 +135,52 @@ def delete_company_by_id(db_id: int) -> bool:
     finally:
         session.close()
 
+
 def add_application(app_in: JobApplicationCreate) -> JobApplication | None:
     session = get_session()
     try:
-        job = session.query(JobPosting).filter(
-            JobPosting.id == app_in.job_posting_id
-        ).one_or_none()
-        
+        job = (
+            session.query(JobPosting)
+            .filter(JobPosting.id == app_in.job_posting_id)
+            .one_or_none()
+        )
+
         if job is None:
             return None
-        
+
         db_app = JobApplication(
             job_posting_id=app_in.job_posting_id,
             status=app_in.status,
             notes=app_in.notes,
             applied_at=app_in.applied_at,
         )
-        
+
         session.add(db_app)
         session.commit()
         session.refresh(db_app)
         return db_app
-    
+
     except IntegrityError:
         session.rollback()
         return "duplicate"
-    
+
     finally:
         session.close()
 
-def get_applications(limit: int, status: JobStatusEnum | None = None) -> list[JobApplication]:
-    limit = max(1,min(limit,500))
+
+def get_applications(
+    limit: int, status: JobStatusEnum | None = None
+) -> list[JobApplication]:
+    limit = max(1, min(limit, 500))
     session = get_session()
-    
+
     try:
         query = session.query(JobApplication)
-        
+
         if status is not None:
             query = query.filter(JobApplication.status == status)
-        
+
         return query.limit(limit).all()
-    
+
     finally:
         session.close()
