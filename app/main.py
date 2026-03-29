@@ -162,5 +162,5 @@ def create_application(app_in: JobApplicationCreate):
 
 
 @app.get("/applications", response_model=list[JobApplicationOut])
-def read_applications(limit: int = 100, status: JobStatusEnum | None = None):
-    return get_applications(limit, status)
+def read_applications(limit: int = 100, status_filter: JobStatusEnum | None = None):
+    return get_applications(limit, status_filter)
