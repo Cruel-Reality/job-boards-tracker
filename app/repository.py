@@ -136,7 +136,7 @@ def delete_company_by_id(db_id: int) -> bool:
         session.close()
 
 
-def add_application(app_in: JobApplicationCreate) -> JobApplication | None:
+def add_application(app_in: JobApplicationCreate) -> JobApplication | None | str:
     session = get_session()
     try:
         job = (
