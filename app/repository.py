@@ -1,4 +1,5 @@
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import joinedload
 
 from app.db import get_session
 from app.models import CompanyCreate, JobApplicationCreate, JobApplicationUpdate
@@ -175,7 +176,7 @@ def get_applications(
     session = get_session()
 
     try:
-        query = session.query(JobApplication)
+        query = session.query(JobApplication).options(joinedload(JobApplication.job))
 
         if status is not None:
             query = query.filter(JobApplication.status == status)

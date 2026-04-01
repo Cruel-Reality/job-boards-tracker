@@ -77,3 +77,7 @@ class JobApplicationUpdate(BaseModel):
     status: JobStatusEnum | None = None
     notes: str | None = None
     applied_at: datetime | None = None
+
+
+class JobApplicationWithJobOut(JobApplicationOut):
+    job: JobOut

@@ -11,7 +11,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from app.db import Base
@@ -22,6 +22,8 @@ class JobPosting(Base):
     __table_args__ = (
         UniqueConstraint("source", "source_job_id", name="uq_source_source_job_id"),
     )
+
+    application: Mapped["JobApplication | None"] = relationship(back_populates="job")
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     source: Mapped[str] = mapped_column(String, nullable=False)
@@ -87,6 +89,8 @@ class JobStatusEnum(PyEnum):
 
 class JobApplication(Base):
     __tablename__ = "job_applications"
+
+    job: Mapped["JobPosting"] = relationship(back_populates="application")
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     job_posting_id: Mapped[int] = mapped_column(
