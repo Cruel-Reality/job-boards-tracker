@@ -5,9 +5,7 @@ from pydantic import BaseModel, ConfigDict
 from app.orm_models import JobStatusEnum, SectorEnum, SizeEnum
 
 
-class CanonicalJob(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
+class JobBase(BaseModel):
     source: str
     source_job_id: str
     company: str
@@ -19,6 +17,12 @@ class CanonicalJob(BaseModel):
     salary_max: int | None = None
     currency: str | None = None
     is_remote: bool | None = None
+
+
+class JobOut(JobBase):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
     created_at: datetime | None = None
     updated_at: datetime | None = None
 

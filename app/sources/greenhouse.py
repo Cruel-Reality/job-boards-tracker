@@ -1,31 +1,34 @@
 import httpx
 
-from app.models import CanonicalJob
+from app.models import JobBase
+
 
 def build_jobs_url(board_token: str) -> str:
     return f"https://boards-api.greenhouse.io/v1/boards/{board_token}/jobs"
 
-def normalize_job(raw:dict, company: str) -> CanonicalJob:
+
+def normalize_job(raw: dict, company: str) -> JobBase:
     location = raw.get("location") or {}
     location_name = location.get("name")
 
     company_name = raw.get("company_name") or company
 
-    return CanonicalJob(
+    return JobBase(
         source="greenhouse",
         source_job_id=str(raw["id"]),
-        company = company_name,
+        company=company_name,
         title=raw["title"],
         url=raw["absolute_url"],
         location=location_name,
-        #greenhouse does not usually have salary info
+        # greenhouse does not usually have salary info
         salary_min=None,
         salary_max=None,
         currency=None,
         is_remote=None,
     )
 
-async def fetch_greenhouse_jobs(board_token: str, company: str) -> list[CanonicalJob]:
+
+async def fetch_greenhouse_jobs(board_token: str, company: str) -> list[JobBase]:
 
     url = build_jobs_url(board_token)
 
@@ -35,5 +38,5 @@ async def fetch_greenhouse_jobs(board_token: str, company: str) -> list[Canonica
     response.raise_for_status()
     data = response.json()
 
-    raw_jobs = data.get("jobs",[])
-    return [normalize_job(job,company=company) for job in raw_jobs]
+    raw_jobs = data.get("jobs", [])
+    return [normalize_job(job, company=company) for job in raw_jobs]

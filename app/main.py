@@ -3,12 +3,13 @@ import time
 from fastapi import FastAPI, HTTPException, Path, Query, status
 
 from app.models import (
-    CanonicalJob,
     CompanyCreate,
     CompanyOut,
     JobApplicationCreate,
     JobApplicationOut,
     JobApplicationUpdate,
+    JobBase,
+    JobOut,
     ServiceInfo,
 )
 from app.orm_models import JobStatusEnum
@@ -45,7 +46,7 @@ def health():
     )
 
 
-@app.get("/sources/greenhouse", response_model=list[CanonicalJob])
+@app.get("/sources/greenhouse", response_model=list[JobBase])
 async def greenhouse(
     board: str = Query(
         ...,
@@ -55,24 +56,24 @@ async def greenhouse(
         ...,
         description="Company name (ex: 'Stripe')",
     ),
-) -> list[CanonicalJob]:
+) -> list[JobBase]:
     jobs = await fetch_greenhouse_jobs(board_token=board, company=company)
     upsert_jobs(jobs)
     return jobs
 
 
-@app.get("/jobs", response_model=list[CanonicalJob])
+@app.get("/jobs", response_model=list[JobOut])
 def jobs(
     company: str | None = Query(None, description="Filter by company ex: 'Stripe'"),
     limit: int = Query(25, ge=1, le=100),
-) -> list[CanonicalJob]:
+) -> list[JobOut]:
     return get_jobs(company=company, limit=limit)
 
 
-@app.get("/jobs/{db_id}", response_model=CanonicalJob)
+@app.get("/jobs/{db_id}", response_model=JobOut)
 def job(
     db_id: int = Path(..., ge=1, description="database primary key"),
-) -> CanonicalJob:
+) -> JobOut:
     job = get_job(db_id=db_id)
 
     if job is None:
