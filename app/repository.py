@@ -181,7 +181,7 @@ def get_applications(
         if status is not None:
             query = query.filter(JobApplication.status == status)
 
-        return query.limit(limit).all()
+        return query.order_by(JobApplication.updated_at.desc()).limit(limit).all()
 
     finally:
         session.close()
