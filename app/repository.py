@@ -172,6 +172,7 @@ def add_application(app_in: JobApplicationCreate) -> JobApplication | None | str
 def get_applications(
     limit: int, status: JobStatusEnum | None = None
 ) -> list[JobApplication]:
+    """Return job applications, optionally filtered by job status."""
     limit = max(1, min(limit, 500))
     session = get_session()
 
