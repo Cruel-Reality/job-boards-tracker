@@ -191,6 +191,7 @@ def get_applications(
 def update_application(
     application_id: int, app_update: JobApplicationUpdate
 ) -> JobApplication | None:
+    """Update job applications, selected by ID return updated application."""
     session = get_session()
 
     try:
