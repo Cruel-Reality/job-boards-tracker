@@ -49,13 +49,22 @@ def upsert_jobs(jobs):
         session.close()
 
 
-def get_jobs(company: str | None = None, limit: int = 25) -> list[JobPosting]:
+def get_jobs(
+    company: str | None = None,
+    limit: int = 25,
+    unapplied_only: bool = False,
+) -> list[JobPosting]:
     limit = max(1, min(limit, 100))
     session = get_session()
     try:
         q = session.query(JobPosting)
         if company:
             q = q.filter(JobPosting.company == company)
+
+        if unapplied_only:
+            applied_job_ids = session.query(JobApplication.job_posting_id)
+            q = q.filter(~JobPosting.id.in_(applied_job_ids))
+
         return q.order_by(JobPosting.id.desc()).limit(limit).all()
     finally:
         session.close()
