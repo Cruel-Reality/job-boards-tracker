@@ -147,6 +147,13 @@ def delete_company_by_id(db_id: int) -> bool:
 
 
 def add_application(app_in: JobApplicationCreate) -> JobApplication | None | str:
+    """Create job application.
+
+    Returns:
+        JobApplication: if created successfully
+        None: if the referenced job does not exist
+        "duplicate": if an application already exists for the job
+    """
     session = get_session()
     try:
         job = (
