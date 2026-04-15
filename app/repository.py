@@ -112,6 +112,17 @@ def get_companies(limit: int) -> list[Company]:
 
 
 def delete_company_by_id(db_id: int) -> bool:
+    """Delete a company and all related job postings and applications.
+
+    Deletes:
+    - all JobApplication rows for the company's job postings
+    - all JobPosting rows for the company
+    - the Company row itself
+
+    Returns:
+        True: if the company was found and deleted
+        False: if no company with the given id exists
+    """
     session = get_session()
     try:
         company = session.query(Company).filter(Company.id == db_id).one_or_none()
