@@ -102,6 +102,10 @@ def add_company(company_in: CompanyCreate) -> Company | None:
 
 
 def get_companies(limit: int) -> list[Company]:
+    """Return up to `limit` Company rows ordered alphabetically by company name.
+
+    Limit is clamped between 1 and 500.
+    """
     session = get_session()
     limit = max(1, min(limit, 500))
     try:
