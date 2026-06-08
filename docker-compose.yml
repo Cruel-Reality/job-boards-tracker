@@ -1,0 +1,47 @@
+# Local development services for job-boards-tracker.
+# Start everything with:  docker compose up -d
+# Stop with:              docker compose down   (add -v to also wipe the data volume)
+
+services:
+  # "db" is the service name. Compose uses it as the container's network hostname
+  # and as the label you pass to commands, e.g. `docker compose logs db`.
+  db:
+    # The read-only image this container is built from, pulled from Docker Hub.
+    # Pinning ":16" (not ":latest") keeps the Postgres major version reproducible.
+    image: postgres:16
+
+    # A stable container name so `docker ps` / `docker exec` are predictable.
+    container_name: job_tracker_db
+
+    # Environment variables the postgres image reads ON FIRST STARTUP to create
+    # the initial role and database. These must line up with DATABASE_URL in .env:
+    #   postgresql+psycopg://job_user:devpassword@localhost:5432/job_tracker
+    environment:
+      POSTGRES_USER: job_user
+      POSTGRES_PASSWORD: devpassword
+      POSTGRES_DB: job_tracker
+
+    # Port mapping is "HOST:CONTAINER". This publishes the container's internal
+    # 5432 to localhost:5432 on your machine, which is why DATABASE_URL can say
+    # @localhost:5432. Without this line the DB would be unreachable from the host.
+    ports:
+      - "5432:5432"
+
+    # A named volume persists Postgres's data dir outside the container's lifecycle,
+    # so `docker compose down` (without -v) keeps your data; the container is
+    # disposable, the volume is not.
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+    # Healthcheck lets Compose (and later, the api service) know when Postgres is
+    # actually ready to accept connections, not just when the process has started.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U job_user -d job_tracker"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+# Top-level declaration of the named volume referenced above. Docker manages where
+# this lives on disk; you refer to it only by the name "pgdata".
+volumes:
+  pgdata:
