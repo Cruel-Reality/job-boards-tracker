@@ -1,8 +1,21 @@
 from datetime import datetime
+from typing import Generic, TypeVar
 
 from pydantic import BaseModel, ConfigDict
 
 from app.orm_models import JobStatusEnum, SectorEnum, SizeEnum
+
+T = TypeVar("T")
+
+
+class Page(BaseModel, Generic[T]):
+    """A paginated slice of results plus the metadata a UI needs to page through."""
+
+    items: list[T]
+    total: int
+    limit: int
+    offset: int
+    has_more: bool
 
 
 class JobBase(BaseModel):

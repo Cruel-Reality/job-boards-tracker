@@ -93,23 +93,34 @@ def test_get_stats():
 # ─── jobs ─────────────────────────────────────────────────────────────────────
 
 
-def test_get_jobs_returns_list():
-    with patch("app.main.get_jobs", return_value=[make_job_out()]):
+def test_get_jobs_returns_page():
+    with patch("app.main.get_jobs", return_value=([make_job_out()], 1)):
         response = client.get("/jobs")
     assert response.status_code == 200
-    assert len(response.json()) == 1
-    assert response.json()[0]["title"] == "Engineer"
+    body = response.json()
+    assert body["total"] == 1
+    assert body["has_more"] is False
+    assert body["items"][0]["title"] == "Engineer"
+
+
+def test_get_jobs_has_more_when_total_exceeds_page():
+    with patch("app.main.get_jobs", return_value=([make_job_out()], 50)):
+        response = client.get("/jobs?limit=1&offset=0")
+    body = response.json()
+    assert body["total"] == 50
+    assert body["has_more"] is True
 
 
 def test_get_jobs_passes_query_params():
-    with patch("app.main.get_jobs", return_value=[]) as mock_get_jobs:
+    with patch("app.main.get_jobs", return_value=([], 0)) as mock_get_jobs:
         client.get(
-            "/jobs?company=Acme&limit=10&tracked=false"
+            "/jobs?company=Acme&limit=10&offset=20&tracked=false"
             "&application_status=applied&size=big&sector=tech"
         )
     mock_get_jobs.assert_called_once_with(
         company="Acme",
         limit=10,
+        offset=20,
         tracked=False,
         application_status=JobStatusEnum.applied,
         size=SizeEnum.big,
@@ -145,10 +156,12 @@ def test_get_job_not_found():
 
 
 def test_get_companies():
-    with patch("app.main.get_companies", return_value=[make_company_out()]):
+    with patch("app.main.get_companies", return_value=([make_company_out()], 1)):
         response = client.get("/companies")
     assert response.status_code == 200
-    assert response.json()[0]["company"] == "Acme"
+    body = response.json()
+    assert body["total"] == 1
+    assert body["items"][0]["company"] == "Acme"
 
 
 def test_create_company():
@@ -212,7 +225,7 @@ def test_ingest_all_success():
     mock_fetcher = AsyncMock(return_value=jobs)
 
     with (
-        patch("app.main.get_companies", return_value=companies),
+        patch("app.main.get_companies", return_value=(companies, len(companies))),
         patch.dict("app.main.SOURCE_FETCHERS", {"greenhouse": mock_fetcher}),
         patch("app.main.upsert_jobs") as mock_upsert,
     ):
@@ -232,7 +245,7 @@ def test_ingest_all_records_failed_company():
     mock_fetcher = AsyncMock(side_effect=Exception("API down"))
 
     with (
-        patch("app.main.get_companies", return_value=companies),
+        patch("app.main.get_companies", return_value=(companies, len(companies))),
         patch.dict("app.main.SOURCE_FETCHERS", {"greenhouse": mock_fetcher}),
     ):
         response = client.post("/ingest/all")

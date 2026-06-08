@@ -11,6 +11,7 @@ from app.models import (
     JobApplicationWithJobOut,
     JobBase,
     JobOut,
+    Page,
     ServiceInfo,
     StatsOut,
 )
@@ -65,10 +66,11 @@ async def greenhouse(
     return jobs
 
 
-@app.get("/jobs", response_model=list[JobOut])
+@app.get("/jobs", response_model=Page[JobOut])
 def jobs(
     company: str | None = Query(None, description="Filter by company ex: 'Stripe'"),
-    limit: int = Query(25, ge=1, le=100),
+    limit: int = Query(25, ge=1, le=100, description="Page size"),
+    offset: int = Query(0, ge=0, description="Number of rows to skip"),
     tracked: bool | None = Query(
         None,
         description="True: only jobs with an application; False: only jobs without one",
@@ -78,14 +80,22 @@ def jobs(
     ),
     size: SizeEnum | None = Query(None, description="Filter by company size"),
     sector: SectorEnum | None = Query(None, description="Filter by company sector"),
-) -> list[JobOut]:
-    return get_jobs(
+) -> Page[JobOut]:
+    items, total = get_jobs(
         company=company,
         limit=limit,
+        offset=offset,
         tracked=tracked,
         application_status=application_status,
         size=size,
         sector=sector,
+    )
+    return Page[JobOut](
+        items=items,
+        total=total,
+        limit=limit,
+        offset=offset,
+        has_more=offset + len(items) < total,
     )
 
 
@@ -106,9 +116,19 @@ def stats():
     return get_stats()
 
 
-@app.get("/companies", response_model=list[CompanyOut])
-def companies(limit: int = Query(100, ge=1, le=500)) -> list[CompanyOut]:
-    return get_companies(limit=limit)
+@app.get("/companies", response_model=Page[CompanyOut])
+def companies(
+    limit: int = Query(100, ge=1, le=500, description="Page size"),
+    offset: int = Query(0, ge=0, description="Number of rows to skip"),
+) -> Page[CompanyOut]:
+    items, total = get_companies(limit=limit, offset=offset)
+    return Page[CompanyOut](
+        items=items,
+        total=total,
+        limit=limit,
+        offset=offset,
+        has_more=offset + len(items) < total,
+    )
 
 
 @app.post("/company", response_model=CompanyOut, status_code=status.HTTP_201_CREATED)
@@ -125,7 +145,7 @@ def create_company(company: CompanyCreate):
 @app.post("/ingest/all")
 async def ingest_all():
     # temp cap to avoid runaway ingestion
-    companies = get_companies(limit=500)
+    companies, _ = get_companies(limit=500)
 
     total_jobs = 0
     successful_companies = 0

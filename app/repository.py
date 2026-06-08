@@ -78,12 +78,14 @@ def get_stats() -> dict:
 def get_jobs(
     company: str | None = None,
     limit: int = 25,
+    offset: int = 0,
     tracked: bool | None = None,
     application_status: JobStatusEnum | None = None,
     size: SizeEnum | None = None,
     sector: SectorEnum | None = None,
-) -> list[JobPosting]:
+) -> tuple[list[JobPosting], int]:
     limit = max(1, min(limit, 100))
+    offset = max(0, offset)
     session = get_session()
     try:
         # Eager-load the application so JobPosting.application_status is populated
@@ -114,7 +116,10 @@ def get_jobs(
             )
             q = q.filter(JobPosting.id.in_(status_ids))
 
-        return q.order_by(JobPosting.id.desc()).limit(limit).all()
+        # total counts the whole filtered set; the page then applies limit/offset.
+        total = q.count()
+        items = q.order_by(JobPosting.id.desc()).limit(limit).offset(offset).all()
+        return items, total
     finally:
         session.close()
 
@@ -150,16 +155,19 @@ def add_company(company_in: CompanyCreate) -> Company | None:
         session.close()
 
 
-def get_companies(limit: int) -> list[Company]:
-    """Return up to `limit` Company rows ordered alphabetically by company name.
+def get_companies(limit: int, offset: int = 0) -> tuple[list[Company], int]:
+    """Return a page of Company rows (alphabetical) and the total count.
 
-    Limit is clamped between 1 and 500.
+    Limit is clamped between 1 and 500; offset is clamped to >= 0.
     """
     session = get_session()
     limit = max(1, min(limit, 500))
+    offset = max(0, offset)
     try:
         q = session.query(Company)
-        return q.order_by(Company.company.asc()).limit(limit).all()
+        total = q.count()
+        items = q.order_by(Company.company.asc()).limit(limit).offset(offset).all()
+        return items, total
     finally:
         session.close()
 

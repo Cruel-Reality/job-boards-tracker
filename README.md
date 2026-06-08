@@ -62,6 +62,9 @@ docker compose down -v       # stop Postgres and wipe data
 | `POST`   | `/applications`            | Track an application for a job               |
 | `PATCH`  | `/applications/{id}`       | Update an application                        |
 
+List endpoints (`/jobs`, `/companies`) are paginated: pass `limit` and `offset`, and the response
+is an envelope — `{ "items": [...], "total", "limit", "offset", "has_more" }`.
+
 ## Project layout
 
 ```
