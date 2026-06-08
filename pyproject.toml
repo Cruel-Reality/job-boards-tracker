@@ -41,3 +41,8 @@ dev = [
     "pytest>=8.3.5",
     "ruff>=0.15.16",
 ]
+
+[tool.pytest.ini_options]
+# Run `async def` tests automatically (otherwise pytest collects but skips them).
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
