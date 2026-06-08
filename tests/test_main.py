@@ -323,3 +323,34 @@ def test_patch_application_not_found():
         response = client.patch("/applications/999", json={"status": "rejected"})
     assert response.status_code == 404
     assert "999" in response.json()["detail"]
+
+
+def test_delete_application():
+    with patch("app.main.delete_application_by_id", return_value=True):
+        response = client.delete("/applications/1")
+    assert response.status_code == 200
+    assert response.json()["status"] == "deleted"
+
+
+def test_delete_application_not_found():
+    with patch("app.main.delete_application_by_id", return_value=False):
+        response = client.delete("/applications/999")
+    assert response.status_code == 404
+    assert "999" in response.json()["detail"]
+
+
+# ─── delete job ───────────────────────────────────────────────────────────────
+
+
+def test_delete_job():
+    with patch("app.main.delete_job_by_id", return_value=True):
+        response = client.delete("/jobs/1")
+    assert response.status_code == 200
+    assert response.json()["status"] == "deleted"
+
+
+def test_delete_job_not_found():
+    with patch("app.main.delete_job_by_id", return_value=False):
+        response = client.delete("/jobs/999")
+    assert response.status_code == 404
+    assert "999" in response.json()["detail"]

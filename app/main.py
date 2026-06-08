@@ -25,7 +25,9 @@ from app.orm_models import JobStatusEnum, SectorEnum, SizeEnum
 from app.repository import (
     add_application,
     add_company,
+    delete_application_by_id,
     delete_company_by_id,
+    delete_job_by_id,
     get_applications,
     get_companies,
     get_job,
@@ -115,6 +117,13 @@ def job(
         raise HTTPException(status_code=404, detail=f"No job with id: {db_id} found")
 
     return job
+
+
+@app.delete("/jobs/{db_id}")
+def delete_job(db_id: int):
+    if not delete_job_by_id(db_id):
+        raise HTTPException(status_code=404, detail=f"No job with id: {db_id} found")
+    return {"status": "deleted"}
 
 
 @app.get("/stats", response_model=StatsOut)
@@ -243,3 +252,12 @@ def patch_application(application_id: int, app_update: JobApplicationUpdate):
         )
 
     return updated_app
+
+
+@app.delete("/applications/{application_id}")
+def delete_application(application_id: int):
+    if not delete_application_by_id(application_id):
+        raise HTTPException(
+            status_code=404, detail=f"No application with id: {application_id} found"
+        )
+    return {"status": "deleted"}

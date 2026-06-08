@@ -5,7 +5,10 @@ from app.orm_models import JobStatusEnum, SectorEnum, SizeEnum
 from app.repository import (
     add_application,
     add_company,
+    delete_application_by_id,
     delete_company_by_id,
+    delete_job_by_id,
+    get_applications,
     get_companies,
     get_jobs,
     get_stats,
@@ -163,6 +166,35 @@ def test_delete_company_keeps_meaningful_applications_and_removes_the_rest(clean
 
     companies, _ = get_companies(limit=10)
     assert companies == []
+
+
+def test_delete_job_removes_job_and_application(clean_db):
+    upsert_jobs([_job("1")])
+    jobs, _ = get_jobs()
+    add_application(
+        JobApplicationCreate(job_posting_id=jobs[0].id, status=JobStatusEnum.applied)
+    )
+
+    assert delete_job_by_id(jobs[0].id) is True
+    _, total = get_jobs()
+    _, app_total = get_applications(limit=10)
+    assert total == 0
+    assert app_total == 0
+
+
+def test_delete_application_keeps_job(clean_db):
+    upsert_jobs([_job("1")])
+    jobs, _ = get_jobs()
+    application = add_application(
+        JobApplicationCreate(job_posting_id=jobs[0].id, status=JobStatusEnum.applied)
+    )
+
+    assert delete_application_by_id(application.id) is True
+    remaining, total = get_jobs()
+    _, app_total = get_applications(limit=10)
+    assert total == 1  # job kept
+    assert remaining[0].application_status is None  # application removed
+    assert app_total == 0
 
 
 def test_get_stats(clean_db):

@@ -290,6 +290,41 @@ def delete_company_by_id(db_id: int) -> bool:
         session.close()
 
 
+def delete_job_by_id(db_id: int) -> bool:
+    """Delete a single job and its application, if any. False if it does not exist."""
+    session = get_session()
+    try:
+        job = session.query(JobPosting).filter(JobPosting.id == db_id).one_or_none()
+        if job is None:
+            return False
+        session.query(JobApplication).filter(
+            JobApplication.job_posting_id == db_id
+        ).delete(synchronize_session=False)
+        session.delete(job)
+        session.commit()
+        return True
+    finally:
+        session.close()
+
+
+def delete_application_by_id(application_id: int) -> bool:
+    """Delete a single application; the job is kept. False if it does not exist."""
+    session = get_session()
+    try:
+        app_row = (
+            session.query(JobApplication)
+            .filter(JobApplication.id == application_id)
+            .one_or_none()
+        )
+        if app_row is None:
+            return False
+        session.delete(app_row)
+        session.commit()
+        return True
+    finally:
+        session.close()
+
+
 def add_application(app_in: JobApplicationCreate) -> JobApplication | None | str:
     """Create job application.
 
