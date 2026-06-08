@@ -57,7 +57,9 @@ def get_jobs(
     limit = max(1, min(limit, 100))
     session = get_session()
     try:
-        q = session.query(JobPosting)
+        # Eager-load the application so JobPosting.application_status is populated
+        # before the session closes (avoids a detached-instance lazy load).
+        q = session.query(JobPosting).options(joinedload(JobPosting.application))
         if company:
             q = q.filter(JobPosting.company == company)
 
@@ -73,7 +75,7 @@ def get_jobs(
 def get_job(db_id: int) -> JobPosting | None:
     session = get_session()
     try:
-        q = session.query(JobPosting)
+        q = session.query(JobPosting).options(joinedload(JobPosting.application))
         q = q.filter(JobPosting.id == db_id)
         return q.one_or_none()
     finally:

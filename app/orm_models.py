@@ -25,6 +25,11 @@ class JobPosting(Base):
 
     application: Mapped["JobApplication | None"] = relationship(back_populates="job")
 
+    @property
+    def application_status(self) -> "JobStatusEnum | None":
+        """Status of the linked application, or None if the job is not tracked."""
+        return self.application.status if self.application else None
+
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     source: Mapped[str] = mapped_column(String, nullable=False)
     source_job_id: Mapped[str] = mapped_column(String, nullable=False)

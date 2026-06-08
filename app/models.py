@@ -23,6 +23,7 @@ class JobOut(JobBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    application_status: JobStatusEnum | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
 
