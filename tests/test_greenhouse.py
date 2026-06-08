@@ -1,3 +1,5 @@
+"""Tests for Greenhouse URL building, normalization, and fetching (HTTP mocked)."""
+
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from app.sources.greenhouse import build_jobs_url, fetch_greenhouse_jobs, normalize_job

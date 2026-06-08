@@ -1,3 +1,9 @@
+"""FastAPI application: HTTP routes for jobs, companies, and applications.
+
+Routes stay thin — request validation and response shaping only — and delegate all
+database work to app.repository.
+"""
+
 import time
 
 from fastapi import FastAPI, HTTPException, Path, Query, status
@@ -144,7 +150,9 @@ def create_company(company: CompanyCreate):
 
 @app.post("/ingest/all")
 async def ingest_all():
-    # temp cap to avoid runaway ingestion
+    # Ingest sequentially for every tracked company. Capped at 500 to bound the
+    # work in one request; companies fetch one at a time to stay simple and gentle
+    # on source rate limits. A failing company is recorded, not fatal.
     companies, _ = get_companies(limit=500)
 
     total_jobs = 0
@@ -182,7 +190,6 @@ async def ingest_all():
 
 @app.delete("/companies/{db_id}")
 def delete_company(db_id: int):
-
     deleted = delete_company_by_id(db_id)
 
     if not deleted:

@@ -1,3 +1,5 @@
+"""SQLAlchemy ORM models for tracked companies, job postings, and applications."""
+
 from datetime import datetime
 from enum import Enum as PyEnum
 
@@ -24,7 +26,6 @@ class JobPosting(Base):
     )
 
     application: Mapped["JobApplication | None"] = relationship(back_populates="job")
-    tracked_company: Mapped["Company | None"] = relationship()
 
     @property
     def application_status(self) -> "JobStatusEnum | None":
@@ -35,6 +36,7 @@ class JobPosting(Base):
     source: Mapped[str] = mapped_column(String, nullable=False)
     source_job_id: Mapped[str] = mapped_column(String, nullable=False)
     company: Mapped[str] = mapped_column(String, nullable=False)
+    # FK to the tracked company; nullable because ad-hoc ingests may not be linked.
     company_id: Mapped[int | None] = mapped_column(
         ForeignKey("company_sources.id"), nullable=True
     )

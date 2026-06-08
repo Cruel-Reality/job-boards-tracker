@@ -1,3 +1,5 @@
+"""Repository tests against a real database (skipped locally without a test DB)."""
+
 from app.models import CompanyCreate, JobApplicationCreate, JobBase
 from app.orm_models import JobStatusEnum, SectorEnum, SizeEnum
 from app.repository import (

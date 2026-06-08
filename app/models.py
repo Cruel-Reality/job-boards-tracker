@@ -1,3 +1,10 @@
+"""Pydantic schemas for API requests and responses.
+
+Naming convention: `*Base` holds shared fields, `*Create` is the request body for
+creation, and `*Out` is the response shape (with `from_attributes` so it can be
+built directly from an ORM object).
+"""
+
 from datetime import datetime
 from typing import Generic, TypeVar
 
@@ -18,6 +25,7 @@ class Page(BaseModel, Generic[T]):
     has_more: bool
 
 
+# Normalized job fields shared by ingestion input and API output.
 class JobBase(BaseModel):
     source: str
     source_job_id: str

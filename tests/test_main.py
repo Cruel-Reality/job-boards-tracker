@@ -1,3 +1,5 @@
+"""API route tests with the repository layer mocked (no database required)."""
+
 from datetime import datetime
 from unittest.mock import AsyncMock, patch
 

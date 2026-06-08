@@ -1,3 +1,5 @@
+"""Unit tests for ORM model behavior (no database required)."""
+
 from app.orm_models import JobApplication, JobPosting, JobStatusEnum
 
 

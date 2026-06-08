@@ -1,3 +1,8 @@
+"""Database engine, session factory, and the declarative Base.
+
+Configuration comes from the environment (loaded from a local .env in development).
+"""
+
 import os
 
 from dotenv import load_dotenv
@@ -24,4 +29,5 @@ class Base(DeclarativeBase):
 
 
 def get_session():
+    """Return a new session. The caller is responsible for closing it."""
     return SessionLocal()
