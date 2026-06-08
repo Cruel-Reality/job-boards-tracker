@@ -1,4 +1,4 @@
-from sqlalchemy import func
+from sqlalchemy import and_, func, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload
 
@@ -183,24 +183,28 @@ def delete_company_by_id(db_id: int) -> bool:
         if company is None:
             return False
 
-        # get IDs of postings being deleted, then delete their applications first
-        posting_ids = [
-            row.id
-            for row in session.query(JobPosting.id)
-            .filter(
+        # Match postings linked by the company_id FK OR by the legacy (company, source)
+        # strings. Deleting by company_id is what avoids a foreign-key violation when a
+        # job's stored company name differs from the tracked company's name.
+        posting_filter = or_(
+            JobPosting.company_id == company.id,
+            and_(
                 JobPosting.company == company.company,
                 JobPosting.source == company.source,
-            )
-            .all()
+            ),
+        )
+        posting_ids = [
+            row.id for row in session.query(JobPosting.id).filter(posting_filter).all()
         ]
 
+        # Delete applications first (they FK to job_postings), then the postings.
         session.query(JobApplication).filter(
             JobApplication.job_posting_id.in_(posting_ids)
         ).delete(synchronize_session=False)
 
-        session.query(JobPosting).filter(
-            JobPosting.company == company.company, JobPosting.source == company.source
-        ).delete()
+        session.query(JobPosting).filter(JobPosting.id.in_(posting_ids)).delete(
+            synchronize_session=False
+        )
 
         session.delete(company)
         session.commit()
