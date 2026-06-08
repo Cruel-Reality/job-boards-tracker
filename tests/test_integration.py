@@ -1,3 +1,5 @@
+"""End-to-end API tests that run against a real database (CI / local test DB)."""
+
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -35,3 +37,17 @@ def test_jobs_endpoint_serializes_application_status(clean_db):
     )
     body = client.get("/jobs").json()
     assert body["items"][0]["application_status"] == "applied"
+
+
+def test_applications_endpoint_serializes_nested_job(clean_db):
+    # Guards the detached-instance bug: the nested JobOut.application_status must
+    # resolve without a lazy load after the repository session has closed.
+    upsert_jobs([_job("1")])
+    jobs, _ = get_jobs()
+    add_application(
+        JobApplicationCreate(job_posting_id=jobs[0].id, status=JobStatusEnum.applied)
+    )
+    response = client.get("/applications")
+    assert response.status_code == 200
+    body = response.json()
+    assert body[0]["job"]["application_status"] == "applied"

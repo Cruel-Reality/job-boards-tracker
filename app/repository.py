@@ -1,3 +1,9 @@
+"""Database access layer.
+
+All reads and writes go through these functions. Each opens its own session and
+is responsible for closing it (see the try/finally in every function).
+"""
+
 from sqlalchemy import and_, func, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload
@@ -15,6 +21,11 @@ from app.orm_models import (
 
 
 def upsert_jobs(jobs, company_id=None):
+    """Insert or update jobs, keyed on (source, source_job_id).
+
+    Existing rows are updated in place (idempotent re-ingest); new rows are added.
+    company_id links jobs to a tracked company; it is only written when supplied.
+    """
     session = get_session()
     try:
         for job in jobs:
@@ -84,6 +95,10 @@ def get_jobs(
     size: SizeEnum | None = None,
     sector: SectorEnum | None = None,
 ) -> tuple[list[JobPosting], int]:
+    """Return a page of jobs matching the given filters, plus the total match count.
+
+    Returns (items, total) where total ignores limit/offset so callers can paginate.
+    """
     limit = max(1, min(limit, 100))
     offset = max(0, offset)
     session = get_session()
@@ -125,6 +140,7 @@ def get_jobs(
 
 
 def get_job(db_id: int) -> JobPosting | None:
+    """Return a single job by primary key, or None if it does not exist."""
     session = get_session()
     try:
         q = session.query(JobPosting).options(joinedload(JobPosting.application))
@@ -135,6 +151,7 @@ def get_job(db_id: int) -> JobPosting | None:
 
 
 def add_company(company_in: CompanyCreate) -> Company | None:
+    """Create a tracked company, or return None if (source, company, board) exists."""
     session = get_session()
     try:
         db_company = Company(
@@ -269,7 +286,12 @@ def get_applications(
     session = get_session()
 
     try:
-        query = session.query(JobApplication).options(joinedload(JobApplication.job))
+        # Eager-load the job AND the job's application back-reference: the nested
+        # JobOut exposes application_status, which would otherwise lazy-load the
+        # relationship after the session is closed (DetachedInstanceError).
+        query = session.query(JobApplication).options(
+            joinedload(JobApplication.job).joinedload(JobPosting.application)
+        )
 
         if status is not None:
             query = query.filter(JobApplication.status == status)
@@ -283,7 +305,7 @@ def get_applications(
 def update_application(
     application_id: int, app_update: JobApplicationUpdate
 ) -> JobApplication | None:
-    """Update job applications, selected by ID return updated application."""
+    """Update the application's set fields by id; return it, or None if not found."""
     session = get_session()
 
     try:
