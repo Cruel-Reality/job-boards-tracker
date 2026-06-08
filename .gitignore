@@ -4,3 +4,7 @@ __pycache__/
 .env
 .idea/
 .vscode/
+
+# Local planning / design artifacts — not committed
+PLAN.md
+wireframe.html
