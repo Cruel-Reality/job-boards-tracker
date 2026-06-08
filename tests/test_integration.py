@@ -50,4 +50,5 @@ def test_applications_endpoint_serializes_nested_job(clean_db):
     response = client.get("/applications")
     assert response.status_code == 200
     body = response.json()
-    assert body[0]["job"]["application_status"] == "applied"
+    assert body["total"] == 1
+    assert body["items"][0]["job"]["application_status"] == "applied"

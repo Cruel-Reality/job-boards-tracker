@@ -279,10 +279,14 @@ def add_application(app_in: JobApplicationCreate) -> JobApplication | None | str
 
 
 def get_applications(
-    limit: int, status: JobStatusEnum | None = None
-) -> list[JobApplication]:
-    """Return job applications, optionally filtered by job status."""
+    limit: int, status: JobStatusEnum | None = None, offset: int = 0
+) -> tuple[list[JobApplication], int]:
+    """Return a page of applications (optionally filtered by status) and the total.
+
+    Returns (items, total) where total ignores limit/offset so callers can paginate.
+    """
     limit = max(1, min(limit, 500))
+    offset = max(0, offset)
     session = get_session()
 
     try:
@@ -296,7 +300,14 @@ def get_applications(
         if status is not None:
             query = query.filter(JobApplication.status == status)
 
-        return query.order_by(JobApplication.updated_at.desc()).limit(limit).all()
+        total = query.count()
+        items = (
+            query.order_by(JobApplication.updated_at.desc())
+            .limit(limit)
+            .offset(offset)
+            .all()
+        )
+        return items, total
 
     finally:
         session.close()

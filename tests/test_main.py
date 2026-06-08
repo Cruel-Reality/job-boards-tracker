@@ -300,11 +300,12 @@ def test_get_applications():
         updated_at=datetime(2024, 1, 1),
         job=make_job_out(),
     )
-    with patch("app.main.get_applications", return_value=[app_with_job]):
+    with patch("app.main.get_applications", return_value=([app_with_job], 1)):
         response = client.get("/applications")
     assert response.status_code == 200
-    assert len(response.json()) == 1
-    assert response.json()[0]["job"]["title"] == "Engineer"
+    body = response.json()
+    assert body["total"] == 1
+    assert body["items"][0]["job"]["title"] == "Engineer"
 
 
 def test_patch_application():

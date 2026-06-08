@@ -215,9 +215,22 @@ def create_application(app_in: JobApplicationCreate):
     return new_app
 
 
-@app.get("/applications", response_model=list[JobApplicationWithJobOut])
-def read_applications(limit: int = 100, status_filter: JobStatusEnum | None = None):
-    return get_applications(limit, status_filter)
+@app.get("/applications", response_model=Page[JobApplicationWithJobOut])
+def read_applications(
+    limit: int = Query(100, ge=1, le=500, description="Page size"),
+    offset: int = Query(0, ge=0, description="Number of rows to skip"),
+    status_filter: JobStatusEnum | None = Query(
+        None, description="Filter by application status"
+    ),
+) -> Page[JobApplicationWithJobOut]:
+    items, total = get_applications(limit=limit, status=status_filter, offset=offset)
+    return Page[JobApplicationWithJobOut](
+        items=items,
+        total=total,
+        limit=limit,
+        offset=offset,
+        has_more=offset + len(items) < total,
+    )
 
 
 @app.patch("/applications/{application_id}", response_model=JobApplicationOut)
