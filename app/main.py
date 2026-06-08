@@ -13,7 +13,7 @@ from app.models import (
     JobOut,
     ServiceInfo,
 )
-from app.orm_models import JobStatusEnum
+from app.orm_models import JobStatusEnum, SectorEnum, SizeEnum
 from app.repository import (
     add_application,
     add_company,
@@ -74,12 +74,16 @@ def jobs(
     application_status: JobStatusEnum | None = Query(
         None, description="Filter by application status (applied, unapplied, rejected, offer)"
     ),
+    size: SizeEnum | None = Query(None, description="Filter by company size"),
+    sector: SectorEnum | None = Query(None, description="Filter by company sector"),
 ) -> list[JobOut]:
     return get_jobs(
         company=company,
         limit=limit,
         tracked=tracked,
         application_status=application_status,
+        size=size,
+        sector=sector,
     )
 
 

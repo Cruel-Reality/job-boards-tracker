@@ -3,7 +3,14 @@ from sqlalchemy.orm import joinedload
 
 from app.db import get_session
 from app.models import CompanyCreate, JobApplicationCreate, JobApplicationUpdate
-from app.orm_models import Company, JobApplication, JobPosting, JobStatusEnum
+from app.orm_models import (
+    Company,
+    JobApplication,
+    JobPosting,
+    JobStatusEnum,
+    SectorEnum,
+    SizeEnum,
+)
 
 
 def upsert_jobs(jobs, company_id=None):
@@ -59,6 +66,8 @@ def get_jobs(
     limit: int = 25,
     tracked: bool | None = None,
     application_status: JobStatusEnum | None = None,
+    size: SizeEnum | None = None,
+    sector: SectorEnum | None = None,
 ) -> list[JobPosting]:
     limit = max(1, min(limit, 100))
     session = get_session()
@@ -68,6 +77,14 @@ def get_jobs(
         q = session.query(JobPosting).options(joinedload(JobPosting.application))
         if company:
             q = q.filter(JobPosting.company == company)
+
+        # size/sector live on the linked company, so join via the company_id FK.
+        if size is not None or sector is not None:
+            q = q.join(Company, JobPosting.company_id == Company.id)
+            if size is not None:
+                q = q.filter(Company.size == size)
+            if sector is not None:
+                q = q.filter(Company.sector == sector)
 
         # tracked True/False selects jobs that do / do not have an application.
         if tracked is not None:
