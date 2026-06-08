@@ -72,6 +72,24 @@ def test_health():
     assert "uptime_seconds" in data
 
 
+# ─── stats ────────────────────────────────────────────────────────────────────
+
+
+def test_get_stats():
+    stats = {
+        "total_jobs": 5,
+        "total_companies": 2,
+        "last_job_update": datetime(2024, 1, 1),
+    }
+    with patch("app.main.get_stats", return_value=stats):
+        response = client.get("/stats")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total_jobs"] == 5
+    assert data["total_companies"] == 2
+    assert data["last_job_update"].startswith("2024-01-01")
+
+
 # ─── jobs ─────────────────────────────────────────────────────────────────────
 
 

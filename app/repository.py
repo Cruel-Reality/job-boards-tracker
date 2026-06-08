@@ -1,3 +1,4 @@
+from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload
 
@@ -57,6 +58,19 @@ def upsert_jobs(jobs, company_id=None):
     except IntegrityError:
         session.rollback()
         raise
+    finally:
+        session.close()
+
+
+def get_stats() -> dict:
+    """Summary counts and the most recent job update time (proxy for last sync)."""
+    session = get_session()
+    try:
+        return {
+            "total_jobs": session.query(func.count(JobPosting.id)).scalar(),
+            "total_companies": session.query(func.count(Company.id)).scalar(),
+            "last_job_update": session.query(func.max(JobPosting.updated_at)).scalar(),
+        }
     finally:
         session.close()
 

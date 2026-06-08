@@ -35,6 +35,12 @@ class ServiceInfo(BaseModel):
     version: str
 
 
+class StatsOut(BaseModel):
+    total_jobs: int
+    total_companies: int
+    last_job_update: datetime | None = None
+
+
 class CompanyBase(BaseModel):
     source: str
     company: str

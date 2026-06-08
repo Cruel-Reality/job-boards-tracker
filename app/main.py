@@ -12,6 +12,7 @@ from app.models import (
     JobBase,
     JobOut,
     ServiceInfo,
+    StatsOut,
 )
 from app.orm_models import JobStatusEnum, SectorEnum, SizeEnum
 from app.repository import (
@@ -22,6 +23,7 @@ from app.repository import (
     get_companies,
     get_job,
     get_jobs,
+    get_stats,
     update_application,
     upsert_jobs,
 )
@@ -97,6 +99,11 @@ def job(
         raise HTTPException(status_code=404, detail=f"No job with id: {db_id} found")
 
     return job
+
+
+@app.get("/stats", response_model=StatsOut)
+def stats():
+    return get_stats()
 
 
 @app.get("/companies", response_model=list[CompanyOut])
