@@ -67,11 +67,20 @@ async def greenhouse(
 def jobs(
     company: str | None = Query(None, description="Filter by company ex: 'Stripe'"),
     limit: int = Query(25, ge=1, le=100),
-    unapplied_only: bool = Query(
-        False, description="Only return jobs without an application"
+    tracked: bool | None = Query(
+        None,
+        description="True: only jobs with an application; False: only jobs without one",
+    ),
+    application_status: JobStatusEnum | None = Query(
+        None, description="Filter by application status (applied, unapplied, rejected, offer)"
     ),
 ) -> list[JobOut]:
-    return get_jobs(company=company, limit=limit, unapplied_only=unapplied_only)
+    return get_jobs(
+        company=company,
+        limit=limit,
+        tracked=tracked,
+        application_status=application_status,
+    )
 
 
 @app.get("/jobs/{db_id}", response_model=JobOut)

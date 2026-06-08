@@ -52,7 +52,8 @@ def upsert_jobs(jobs):
 def get_jobs(
     company: str | None = None,
     limit: int = 25,
-    unapplied_only: bool = False,
+    tracked: bool | None = None,
+    application_status: JobStatusEnum | None = None,
 ) -> list[JobPosting]:
     limit = max(1, min(limit, 100))
     session = get_session()
@@ -63,9 +64,19 @@ def get_jobs(
         if company:
             q = q.filter(JobPosting.company == company)
 
-        if unapplied_only:
-            applied_job_ids = session.query(JobApplication.job_posting_id)
-            q = q.filter(~JobPosting.id.in_(applied_job_ids))
+        # tracked True/False selects jobs that do / do not have an application.
+        if tracked is not None:
+            application_ids = session.query(JobApplication.job_posting_id)
+            if tracked:
+                q = q.filter(JobPosting.id.in_(application_ids))
+            else:
+                q = q.filter(~JobPosting.id.in_(application_ids))
+
+        if application_status is not None:
+            status_ids = session.query(JobApplication.job_posting_id).filter(
+                JobApplication.status == application_status
+            )
+            q = q.filter(JobPosting.id.in_(status_ids))
 
         return q.order_by(JobPosting.id.desc()).limit(limit).all()
     finally:

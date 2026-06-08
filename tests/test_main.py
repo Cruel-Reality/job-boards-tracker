@@ -85,8 +85,18 @@ def test_get_jobs_returns_list():
 
 def test_get_jobs_passes_query_params():
     with patch("app.main.get_jobs", return_value=[]) as mock_get_jobs:
-        client.get("/jobs?company=Acme&limit=10&unapplied_only=true")
-    mock_get_jobs.assert_called_once_with(company="Acme", limit=10, unapplied_only=True)
+        client.get("/jobs?company=Acme&limit=10&tracked=false&application_status=applied")
+    mock_get_jobs.assert_called_once_with(
+        company="Acme",
+        limit=10,
+        tracked=False,
+        application_status=JobStatusEnum.applied,
+    )
+
+
+def test_get_jobs_rejects_invalid_application_status():
+    response = client.get("/jobs?application_status=banana")
+    assert response.status_code == 422
 
 
 def test_get_job_found():
