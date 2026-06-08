@@ -4,7 +4,10 @@ from app.sources.greenhouse import build_jobs_url, fetch_greenhouse_jobs, normal
 
 
 def test_build_jobs_url():
-    assert build_jobs_url("stripe") == "https://boards-api.greenhouse.io/v1/boards/stripe/jobs"
+    assert (
+        build_jobs_url("stripe")
+        == "https://boards-api.greenhouse.io/v1/boards/stripe/jobs"
+    )
 
 
 def test_normalize_job_full():

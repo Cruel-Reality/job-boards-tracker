@@ -116,7 +116,8 @@ def test_get_companies():
 def test_create_company():
     with patch("app.main.add_company", return_value=make_company_out()):
         response = client.post(
-            "/company", json={"source": "greenhouse", "company": "Acme", "board": "acme"}
+            "/company",
+            json={"source": "greenhouse", "company": "Acme", "board": "acme"},
         )
     assert response.status_code == 201
     assert response.json()["company"] == "Acme"
@@ -125,7 +126,8 @@ def test_create_company():
 def test_create_company_duplicate_returns_400():
     with patch("app.main.add_company", return_value=None):
         response = client.post(
-            "/company", json={"source": "greenhouse", "company": "Acme", "board": "acme"}
+            "/company",
+            json={"source": "greenhouse", "company": "Acme", "board": "acme"},
         )
     assert response.status_code == 400
 
@@ -149,8 +151,10 @@ def test_delete_company_not_found():
 
 def test_greenhouse_endpoint():
     jobs = [make_job_out()]
-    with patch("app.main.fetch_greenhouse_jobs", new=AsyncMock(return_value=jobs)), \
-         patch("app.main.upsert_jobs"):
+    with (
+        patch("app.main.fetch_greenhouse_jobs", new=AsyncMock(return_value=jobs)),
+        patch("app.main.upsert_jobs"),
+    ):
         response = client.get("/sources/greenhouse?board=stripe&company=Stripe")
     assert response.status_code == 200
     assert len(response.json()) == 1
@@ -169,9 +173,11 @@ def test_ingest_all_success():
     jobs = [make_job_out(), make_job_out(id=2, source_job_id="job-2")]
     mock_fetcher = AsyncMock(return_value=jobs)
 
-    with patch("app.main.get_companies", return_value=companies), \
-         patch.dict("app.main.SOURCE_FETCHERS", {"greenhouse": mock_fetcher}), \
-         patch("app.main.upsert_jobs"):
+    with (
+        patch("app.main.get_companies", return_value=companies),
+        patch.dict("app.main.SOURCE_FETCHERS", {"greenhouse": mock_fetcher}),
+        patch("app.main.upsert_jobs"),
+    ):
         response = client.post("/ingest/all")
 
     assert response.status_code == 200
@@ -185,8 +191,10 @@ def test_ingest_all_records_failed_company():
     companies = [make_company_out()]
     mock_fetcher = AsyncMock(side_effect=Exception("API down"))
 
-    with patch("app.main.get_companies", return_value=companies), \
-         patch.dict("app.main.SOURCE_FETCHERS", {"greenhouse": mock_fetcher}):
+    with (
+        patch("app.main.get_companies", return_value=companies),
+        patch.dict("app.main.SOURCE_FETCHERS", {"greenhouse": mock_fetcher}),
+    ):
         response = client.post("/ingest/all")
 
     assert response.status_code == 200
@@ -202,7 +210,9 @@ def test_ingest_all_records_failed_company():
 
 def test_create_application():
     with patch("app.main.add_application", return_value=make_application_out()):
-        response = client.post("/applications", json={"job_posting_id": 1, "status": "applied"})
+        response = client.post(
+            "/applications", json={"job_posting_id": 1, "status": "applied"}
+        )
     assert response.status_code == 200
     assert response.json()["id"] == 1
     assert response.json()["status"] == "applied"
@@ -210,13 +220,17 @@ def test_create_application():
 
 def test_create_application_job_not_found():
     with patch("app.main.add_application", return_value=None):
-        response = client.post("/applications", json={"job_posting_id": 999, "status": "applied"})
+        response = client.post(
+            "/applications", json={"job_posting_id": 999, "status": "applied"}
+        )
     assert response.status_code == 404
 
 
 def test_create_application_duplicate_returns_400():
     with patch("app.main.add_application", return_value="duplicate"):
-        response = client.post("/applications", json={"job_posting_id": 1, "status": "applied"})
+        response = client.post(
+            "/applications", json={"job_posting_id": 1, "status": "applied"}
+        )
     assert response.status_code == 400
 
 
@@ -239,7 +253,10 @@ def test_get_applications():
 
 
 def test_patch_application():
-    with patch("app.main.update_application", return_value=make_application_out(status=JobStatusEnum.rejected)):
+    with patch(
+        "app.main.update_application",
+        return_value=make_application_out(status=JobStatusEnum.rejected),
+    ):
         response = client.patch("/applications/1", json={"status": "rejected"})
     assert response.status_code == 200
     assert response.json()["status"] == "rejected"
