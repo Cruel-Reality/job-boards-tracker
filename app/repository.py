@@ -25,10 +25,16 @@ def upsert_jobs(jobs, company_id=None):
 
     Existing rows are updated in place (idempotent re-ingest); new rows are added.
     company_id links jobs to a tracked company; it is only written when supplied.
+
+    When company_id is given, also removes that company's jobs that are no longer
+    posted (see _remove_stale_jobs), so callers must pass the company's FULL current
+    job set in one call.
     """
     session = get_session()
     try:
+        seen_ids = set()
         for job in jobs:
+            seen_ids.add(job.source_job_id)
             existing = (
                 session.query(JobPosting)
                 .filter(
@@ -65,12 +71,48 @@ def upsert_jobs(jobs, company_id=None):
                     is_remote=job.is_remote,
                 )
                 session.add(db_job)
+
+        # Drop jobs that vanished from the board (tracked ingests only).
+        if company_id is not None:
+            _remove_stale_jobs(session, company_id, seen_ids)
+
         session.commit()
     except IntegrityError:
         session.rollback()
         raise
     finally:
         session.close()
+
+
+def _remove_stale_jobs(session, company_id, seen_ids):
+    """Delete a company's jobs that are no longer posted and not worth keeping.
+
+    A job is kept if it has an application with a status other than 'unapplied'
+    (applied/rejected/offer) — you want visibility into those even after the posting
+    is gone. Everything else (untracked, or tracked-but-unapplied) is deleted, along
+    with any unapplied application it has. seen_ids are the source_job_ids still
+    present in the latest fetch; an empty set means the board returned no jobs.
+    """
+    protected_ids = session.query(JobApplication.job_posting_id).filter(
+        JobApplication.status != JobStatusEnum.unapplied
+    )
+    stale = session.query(JobPosting.id).filter(
+        JobPosting.company_id == company_id,
+        ~JobPosting.id.in_(protected_ids),
+    )
+    if seen_ids:
+        stale = stale.filter(JobPosting.source_job_id.notin_(seen_ids))
+
+    stale_ids = [row.id for row in stale.all()]
+    if not stale_ids:
+        return
+
+    session.query(JobApplication).filter(
+        JobApplication.job_posting_id.in_(stale_ids)
+    ).delete(synchronize_session=False)
+    session.query(JobPosting).filter(JobPosting.id.in_(stale_ids)).delete(
+        synchronize_session=False
+    )
 
 
 def get_stats() -> dict:
@@ -190,16 +232,14 @@ def get_companies(limit: int, offset: int = 0) -> tuple[list[Company], int]:
 
 
 def delete_company_by_id(db_id: int) -> bool:
-    """Delete a company and all related job postings and applications.
+    """Delete a company, keeping jobs whose applications are worth keeping.
 
-    Deletes:
-    - all JobApplication rows for the company's job postings
-    - all JobPosting rows for the company
-    - the Company row itself
+    Jobs with an application status other than 'unapplied' (applied/rejected/offer)
+    are kept for visibility and detached from the company (company_id set to NULL).
+    Every other job for the company — untracked or tracked-but-unapplied — is deleted
+    along with any unapplied application.
 
-    Returns:
-        True: if the company was found and deleted
-        False: if no company with the given id exists
+    Returns True if the company existed and was deleted, else False.
     """
     session = get_session()
     try:
@@ -209,8 +249,7 @@ def delete_company_by_id(db_id: int) -> bool:
             return False
 
         # Match postings linked by the company_id FK OR by the legacy (company, source)
-        # strings. Deleting by company_id is what avoids a foreign-key violation when a
-        # job's stored company name differs from the tracked company's name.
+        # strings, so a name mismatch can't leave an orphan referencing this company.
         posting_filter = or_(
             JobPosting.company_id == company.id,
             and_(
@@ -218,18 +257,30 @@ def delete_company_by_id(db_id: int) -> bool:
                 JobPosting.source == company.source,
             ),
         )
-        posting_ids = [
-            row.id for row in session.query(JobPosting.id).filter(posting_filter).all()
+        # Jobs protected by a meaningful application (any status but 'unapplied').
+        protected_ids = session.query(JobApplication.job_posting_id).filter(
+            JobApplication.status != JobStatusEnum.unapplied
+        )
+
+        removable_ids = [
+            row.id
+            for row in session.query(JobPosting.id)
+            .filter(posting_filter, ~JobPosting.id.in_(protected_ids))
+            .all()
         ]
-
-        # Delete applications first (they FK to job_postings), then the postings.
+        # Delete removable jobs and any unapplied application they have.
         session.query(JobApplication).filter(
-            JobApplication.job_posting_id.in_(posting_ids)
+            JobApplication.job_posting_id.in_(removable_ids)
         ).delete(synchronize_session=False)
-
-        session.query(JobPosting).filter(JobPosting.id.in_(posting_ids)).delete(
+        session.query(JobPosting).filter(JobPosting.id.in_(removable_ids)).delete(
             synchronize_session=False
         )
+
+        # Detach kept jobs so the company FK doesn't block deletion; the company
+        # name stays on the job row for context.
+        session.query(JobPosting).filter(
+            posting_filter, JobPosting.id.in_(protected_ids)
+        ).update({JobPosting.company_id: None}, synchronize_session=False)
 
         session.delete(company)
         session.commit()

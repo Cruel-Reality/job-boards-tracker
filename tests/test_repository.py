@@ -101,26 +101,68 @@ def test_get_jobs_pagination(clean_db):
     assert empty == []
 
 
-def test_delete_company_handles_name_mismatch_without_fk_error(clean_db):
-    # Company tracked as "Stripe", but the ingested job's company string differs
-    # while still linked by company_id. The old string-only delete would miss this
-    # job and raise a foreign-key violation when deleting the company.
+def test_upsert_removes_stale_jobs_except_meaningful_applications(clean_db):
+    company = add_company(
+        CompanyCreate(source="greenhouse", company="Acme", board="acme")
+    )
+    upsert_jobs([_job("1"), _job("2"), _job("3"), _job("4")], company_id=company.id)
+    jobs, _ = get_jobs()
+    by_sid = {j.source_job_id: j for j in jobs}
+    add_application(
+        JobApplicationCreate(
+            job_posting_id=by_sid["1"].id, status=JobStatusEnum.applied
+        )
+    )
+    add_application(
+        JobApplicationCreate(
+            job_posting_id=by_sid["2"].id, status=JobStatusEnum.unapplied
+        )
+    )
+
+    # Re-ingest: only "4" is still posted. "1" (applied) is stale but kept;
+    # "2" (unapplied) and "3" (untracked) are stale and removed.
+    upsert_jobs([_job("4")], company_id=company.id)
+
+    remaining, _ = get_jobs()
+    assert {j.source_job_id for j in remaining} == {"1", "4"}
+
+
+def test_delete_company_keeps_meaningful_applications_and_removes_the_rest(clean_db):
     company = add_company(
         CompanyCreate(source="greenhouse", company="Stripe", board="stripe")
     )
+    # Ingest the company's full set in one call. Job "1" has a name mismatch but is
+    # linked by company_id, covering the foreign-key case.
     upsert_jobs(
-        [_job(source_job_id="1", company="Stripe Payments")], company_id=company.id
+        [
+            _job(source_job_id="1", company="Stripe Payments"),
+            _job(source_job_id="2"),
+            _job(source_job_id="3"),
+        ],
+        company_id=company.id,
     )
     jobs, _ = get_jobs()
+    by_sid = {j.source_job_id: j for j in jobs}
     add_application(
-        JobApplicationCreate(job_posting_id=jobs[0].id, status=JobStatusEnum.applied)
+        JobApplicationCreate(
+            job_posting_id=by_sid["1"].id, status=JobStatusEnum.applied
+        )
+    )
+    add_application(
+        JobApplicationCreate(
+            job_posting_id=by_sid["2"].id, status=JobStatusEnum.unapplied
+        )
     )
 
     assert delete_company_by_id(company.id) is True
-    remaining_jobs, _ = get_jobs()
-    remaining_companies, _ = get_companies(limit=10)
-    assert remaining_jobs == []
-    assert remaining_companies == []
+
+    remaining, _ = get_jobs()
+    # "1" applied -> kept and detached; "2" unapplied and "3" untracked -> removed.
+    assert {j.source_job_id for j in remaining} == {"1"}
+    assert remaining[0].company_id is None
+
+    companies, _ = get_companies(limit=10)
+    assert companies == []
 
 
 def test_get_stats(clean_db):
