@@ -186,7 +186,7 @@ def test_ingest_all_success():
     with (
         patch("app.main.get_companies", return_value=companies),
         patch.dict("app.main.SOURCE_FETCHERS", {"greenhouse": mock_fetcher}),
-        patch("app.main.upsert_jobs"),
+        patch("app.main.upsert_jobs") as mock_upsert,
     ):
         response = client.post("/ingest/all")
 
@@ -195,6 +195,8 @@ def test_ingest_all_success():
     assert data["successful_companies"] == 1
     assert data["jobs_fetched"] == 2
     assert data["failed_companies"] == []
+    # company_id from the tracked company is threaded into the upsert
+    mock_upsert.assert_called_once_with(jobs, company_id=1)
 
 
 def test_ingest_all_records_failed_company():

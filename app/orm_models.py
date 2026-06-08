@@ -24,6 +24,7 @@ class JobPosting(Base):
     )
 
     application: Mapped["JobApplication | None"] = relationship(back_populates="job")
+    tracked_company: Mapped["Company | None"] = relationship()
 
     @property
     def application_status(self) -> "JobStatusEnum | None":
@@ -34,6 +35,9 @@ class JobPosting(Base):
     source: Mapped[str] = mapped_column(String, nullable=False)
     source_job_id: Mapped[str] = mapped_column(String, nullable=False)
     company: Mapped[str] = mapped_column(String, nullable=False)
+    company_id: Mapped[int | None] = mapped_column(
+        ForeignKey("company_sources.id"), nullable=True
+    )
     title: Mapped[str] = mapped_column(String, nullable=False)
     url: Mapped[str] = mapped_column(Text, nullable=False)
 

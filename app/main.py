@@ -129,7 +129,7 @@ async def ingest_all():
                 board_token=company.board,
                 company=company.company,
             )
-            upsert_jobs(jobs)
+            upsert_jobs(jobs, company_id=company.id)
             total_jobs += len(jobs)
             successful_companies += 1
         except Exception:

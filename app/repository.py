@@ -6,7 +6,7 @@ from app.models import CompanyCreate, JobApplicationCreate, JobApplicationUpdate
 from app.orm_models import Company, JobApplication, JobPosting, JobStatusEnum
 
 
-def upsert_jobs(jobs):
+def upsert_jobs(jobs, company_id=None):
     session = get_session()
     try:
         for job in jobs:
@@ -27,11 +27,16 @@ def upsert_jobs(jobs):
                 existing.salary_min = job.salary_min
                 existing.salary_max = job.salary_max
                 existing.is_remote = job.is_remote
+                # Only overwrite the company link when a known id is supplied,
+                # so the ad-hoc source endpoint doesn't wipe an existing link.
+                if company_id is not None:
+                    existing.company_id = company_id
             else:
                 db_job = JobPosting(
                     source=job.source,
                     source_job_id=job.source_job_id,
                     company=job.company,
+                    company_id=company_id,
                     title=job.title,
                     url=job.url,
                     location=job.location,
