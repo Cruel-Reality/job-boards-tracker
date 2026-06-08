@@ -1,5 +1,7 @@
 # Job Boards Tracker
 
+![CI](https://github.com/Cruel-Reality/job-boards-tracker/actions/workflows/ci.yml/badge.svg)
+
 A FastAPI backend that ingests job postings from company job boards (currently
 [Greenhouse](https://www.greenhouse.io/)), normalizes them into a consistent schema, and stores
 them in Postgres for querying and application tracking.

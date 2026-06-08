@@ -1,0 +1,37 @@
+# Name shown in the GitHub "Actions" tab and on commit/PR status checks.
+name: CI
+
+# WHEN to run: on every push, and on every pull request.
+on:
+  push:
+  pull_request:
+
+# WHAT to run. One job here; it lints and tests.
+jobs:
+  lint-and-test:
+    # The runner: a fresh Ubuntu VM provisioned by GitHub for this run.
+    runs-on: ubuntu-latest
+
+    # Steps run top to bottom; a non-zero exit fails the whole job.
+    steps:
+      # Clone this repo onto the runner (without this the VM is empty).
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      # Install uv, and cache its downloads to speed up future runs.
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      # Install project + dev dependencies (uv provisions Python 3.12 itself).
+      - name: Install dependencies
+        run: uv sync
+
+      # Lint: fails the run if Ruff finds problems.
+      - name: Lint with Ruff
+        run: uv run ruff check .
+
+      # Tests: fails the run if any test fails.
+      - name: Run tests
+        run: uv run pytest
