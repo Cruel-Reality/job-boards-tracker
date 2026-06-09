@@ -175,15 +175,29 @@ def companies(
 
 
 @app.post("/company", response_model=CompanyOut, status_code=status.HTTP_201_CREATED)
-def create_company(company: CompanyCreate):
+async def create_company(company: CompanyCreate):
     # Reject sources we can't ingest, so a typo like "linkedin" never reaches the DB
     # and silently get skipped by /ingest/all.
-    if company.source not in SOURCE_FETCHERS:
+    fetcher = SOURCE_FETCHERS.get(company.source)
+    if fetcher is None:
         raise HTTPException(
             status_code=400,
             detail=f"Unsupported source '{company.source}'. "
             f"Supported sources: {sorted(SOURCE_FETCHERS)}",
         )
+
+    # Validate the board by test-fetching it, so a wrong slug is caught now instead
+    # of silently producing no jobs at ingest time. A real board with zero open
+    # roles still fetches successfully, so only a failed fetch is rejected.
+    try:
+        await fetcher(board_token=company.board, company=company.company)
+    except Exception:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Could not load a '{company.source}' board for '{company.board}'. "
+            f"Check the slug (e.g. boards.greenhouse.io/<slug>).",
+        ) from None
+
     new_company = add_company(company)
     if new_company is None:
         raise HTTPException(

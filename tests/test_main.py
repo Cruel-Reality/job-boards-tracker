@@ -172,13 +172,35 @@ def test_get_companies():
 
 
 def test_create_company():
-    with patch("app.main.add_company", return_value=make_company_out()):
+    # The board is validated by a test-fetch; mock it so no network call happens.
+    fake_fetch = AsyncMock(return_value=[])
+    with (
+        patch.dict("app.main.SOURCE_FETCHERS", {"greenhouse": fake_fetch}),
+        patch("app.main.add_company", return_value=make_company_out()),
+    ):
         response = client.post(
             "/company",
             json={"source": "greenhouse", "company": "Acme", "board": "acme"},
         )
     assert response.status_code == 201
     assert response.json()["company"] == "Acme"
+    fake_fetch.assert_awaited_once()
+
+
+def test_create_company_rejects_invalid_board():
+    # A board whose fetch fails (e.g. bad slug -> 404) is rejected before the DB.
+    failing_fetch = AsyncMock(side_effect=Exception("not found"))
+    with (
+        patch.dict("app.main.SOURCE_FETCHERS", {"greenhouse": failing_fetch}),
+        patch("app.main.add_company") as mock_add,
+    ):
+        response = client.post(
+            "/company",
+            json={"source": "greenhouse", "company": "Acme", "board": "bogus-slug"},
+        )
+    assert response.status_code == 400
+    assert "bogus-slug" in response.json()["detail"]
+    mock_add.assert_not_called()
 
 
 def test_sources_lists_supported_sources():
@@ -200,7 +222,11 @@ def test_create_company_rejects_unsupported_source():
 
 
 def test_create_company_duplicate_returns_400():
-    with patch("app.main.add_company", return_value=None):
+    fake_fetch = AsyncMock(return_value=[])
+    with (
+        patch.dict("app.main.SOURCE_FETCHERS", {"greenhouse": fake_fetch}),
+        patch("app.main.add_company", return_value=None),
+    ):
         response = client.post(
             "/company",
             json={"source": "greenhouse", "company": "Acme", "board": "acme"},
