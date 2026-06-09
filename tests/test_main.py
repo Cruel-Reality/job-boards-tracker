@@ -81,7 +81,7 @@ def test_get_stats():
     stats = {
         "total_jobs": 5,
         "total_companies": 2,
-        "last_job_update": datetime(2024, 1, 1),
+        "last_sync": datetime(2024, 1, 1),
     }
     with patch("app.main.get_stats", return_value=stats):
         response = client.get("/stats")
@@ -89,7 +89,7 @@ def test_get_stats():
     data = response.json()
     assert data["total_jobs"] == 5
     assert data["total_companies"] == 2
-    assert data["last_job_update"].startswith("2024-01-01")
+    assert data["last_sync"].startswith("2024-01-01")
 
 
 # ─── jobs ─────────────────────────────────────────────────────────────────────
@@ -230,6 +230,7 @@ def test_ingest_all_success():
         patch("app.main.get_companies", return_value=(companies, len(companies))),
         patch.dict("app.main.SOURCE_FETCHERS", {"greenhouse": mock_fetcher}),
         patch("app.main.upsert_jobs") as mock_upsert,
+        patch("app.main.mark_company_synced") as mock_mark,
     ):
         response = client.post("/ingest/all")
 
@@ -238,8 +239,9 @@ def test_ingest_all_success():
     assert data["successful_companies"] == 1
     assert data["jobs_fetched"] == 2
     assert data["failed_companies"] == []
-    # company_id from the tracked company is threaded into the upsert
+    # company_id from the tracked company is threaded into the upsert and sync mark
     mock_upsert.assert_called_once_with(jobs, company_id=1)
+    mock_mark.assert_called_once_with(1)
 
 
 def test_ingest_all_records_failed_company():

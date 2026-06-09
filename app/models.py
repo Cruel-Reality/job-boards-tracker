@@ -59,7 +59,7 @@ class ServiceInfo(BaseModel):
 class StatsOut(BaseModel):
     total_jobs: int
     total_companies: int
-    last_job_update: datetime | None = None
+    last_sync: datetime | None = None
 
 
 class CompanyBase(BaseModel):

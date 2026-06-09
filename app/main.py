@@ -33,6 +33,7 @@ from app.repository import (
     get_job,
     get_jobs,
     get_stats,
+    mark_company_synced,
     update_application,
     upsert_jobs,
 )
@@ -178,6 +179,7 @@ async def ingest_all():
                 company=company.company,
             )
             upsert_jobs(jobs, company_id=company.id)
+            mark_company_synced(company.id)
             total_jobs += len(jobs)
             successful_companies += 1
         except Exception:

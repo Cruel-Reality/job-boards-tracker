@@ -110,19 +110,17 @@ for _offset_key in ("jobs_offset", "companies_offset", "applications_offset"):
 
 # ── header: stats + ingest ────────────────────────────────────────────────────
 
-stats = api_get("/stats") or {"total_jobs": 0, "total_companies": 0, "last_job_update": None}
+stats = api_get("/stats") or {"total_jobs": 0, "total_companies": 0, "last_sync": None}
 
 title_col, ingest_col = st.columns([4, 1])
 with title_col:
     st.title("📋 Job Boards Tracker")
-    last_sync = (
-        f"{fmt_dt(stats['last_job_update'])} ET"
-        if stats["last_job_update"]
-        else "never"
+    sync_label = (
+        f"{fmt_dt(stats['last_sync'])} ET" if stats["last_sync"] else "never"
     )
     st.caption(
         f"{stats['total_jobs']} jobs · {stats['total_companies']} companies · "
-        f"last sync {last_sync}"
+        f"last sync {sync_label}"
     )
 with ingest_col:
     if st.button("⟳ Ingest all", type="primary", use_container_width=True):

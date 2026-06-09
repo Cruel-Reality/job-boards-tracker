@@ -85,6 +85,9 @@ class Company(Base):
     sector: Mapped[SectorEnum | None] = mapped_column(Enum(SectorEnum), nullable=True)
     size: Mapped[SizeEnum | None] = mapped_column(Enum(SizeEnum), nullable=True)
 
+    # Set on each ingest run (even when no job data changed) — powers "last sync".
+    last_synced_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=func.now(), onupdate=func.now()

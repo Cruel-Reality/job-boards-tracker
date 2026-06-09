@@ -12,6 +12,7 @@ from app.repository import (
     get_companies,
     get_jobs,
     get_stats,
+    mark_company_synced,
     upsert_jobs,
 )
 
@@ -212,10 +213,15 @@ def test_delete_application_keeps_job(clean_db):
 
 
 def test_get_stats(clean_db):
-    add_company(CompanyCreate(source="greenhouse", company="Acme", board="acme"))
+    company = add_company(
+        CompanyCreate(source="greenhouse", company="Acme", board="acme")
+    )
     upsert_jobs([_job(source_job_id="1"), _job(source_job_id="2")])
 
     stats = get_stats()
     assert stats["total_jobs"] == 2
     assert stats["total_companies"] == 1
-    assert stats["last_job_update"] is not None
+    assert stats["last_sync"] is None  # nothing synced yet
+
+    mark_company_synced(company.id)
+    assert get_stats()["last_sync"] is not None

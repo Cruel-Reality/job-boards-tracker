@@ -120,14 +120,30 @@ def _remove_stale_jobs(session, company_id, seen_ids):
 
 
 def get_stats() -> dict:
-    """Summary counts and the most recent job update time (proxy for last sync)."""
+    """Summary counts and the most recent company sync time."""
     session = get_session()
     try:
         return {
             "total_jobs": session.query(func.count(JobPosting.id)).scalar(),
             "total_companies": session.query(func.count(Company.id)).scalar(),
-            "last_job_update": session.query(func.max(JobPosting.updated_at)).scalar(),
+            "last_sync": session.query(func.max(Company.last_synced_at)).scalar(),
         }
+    finally:
+        session.close()
+
+
+def mark_company_synced(company_id) -> None:
+    """Record that a company was just ingested by setting last_synced_at to now().
+
+    Called on every successful ingest, so "last sync" advances even when no job
+    data changed (unlike job.updated_at, which only moves on an actual change).
+    """
+    session = get_session()
+    try:
+        session.query(Company).filter(Company.id == company_id).update(
+            {Company.last_synced_at: func.now()}, synchronize_session=False
+        )
+        session.commit()
     finally:
         session.close()
 
