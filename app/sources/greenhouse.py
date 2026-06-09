@@ -4,6 +4,7 @@ import httpx
 
 from app.categorize import categorize_title
 from app.models import JobBase
+from app.normalize import infer_remote
 
 
 def build_jobs_url(board_token: str) -> str:
@@ -14,10 +15,6 @@ def normalize_job(raw: dict, company: str) -> JobBase:
     """Map one raw Greenhouse job dict to our normalized JobBase schema."""
     location = raw.get("location") or {}
     location_name = location.get("name")
-
-    # Greenhouse has no explicit remote flag, so infer it: a "remote" mention in
-    # the location counts as remote, and a posting with no location is assumed remote.
-    is_remote = "remote" in location_name.lower() if location_name else True
 
     # Greenhouse sometimes omits company_name; fall back to the tracked name.
     company_name = raw.get("company_name") or company
@@ -34,7 +31,7 @@ def normalize_job(raw: dict, company: str) -> JobBase:
         salary_min=None,
         salary_max=None,
         currency=None,
-        is_remote=is_remote,
+        is_remote=infer_remote(location_name),
     )
 
 
