@@ -1,7 +1,13 @@
 """Repository tests against a real database (skipped locally without a test DB)."""
 
 from app.models import CompanyCreate, JobApplicationCreate, JobBase
-from app.orm_models import JobCategoryEnum, JobStatusEnum, SectorEnum, SizeEnum
+from app.orm_models import (
+    JobCategoryEnum,
+    JobStatusEnum,
+    SectorEnum,
+    SeniorityEnum,
+    SizeEnum,
+)
 from app.repository import (
     add_application,
     add_company,
@@ -22,6 +28,7 @@ def _job(
     company="Acme",
     title="Engineer",
     category=None,
+    seniority=None,
     location=None,
     is_remote=None,
 ):
@@ -32,6 +39,7 @@ def _job(
         title=title,
         url=f"https://example.com/{source_job_id}",
         category=category,
+        seniority=seniority,
         location=location,
         is_remote=is_remote,
     )
@@ -105,6 +113,15 @@ def test_get_jobs_filter_by_category(clean_db):
     assert get_jobs(category=JobCategoryEnum.data)[1] == 1
     assert get_jobs(category=JobCategoryEnum.sales)[1] == 1
     assert get_jobs(category=JobCategoryEnum.finance)[1] == 0
+
+
+def test_get_jobs_filter_by_seniority(clean_db):
+    upsert_jobs([_job(source_job_id="1", seniority=SeniorityEnum.senior)])
+    upsert_jobs([_job(source_job_id="2", seniority=SeniorityEnum.manager)])
+
+    assert get_jobs(seniority=SeniorityEnum.senior)[1] == 1
+    assert get_jobs(seniority=SeniorityEnum.manager)[1] == 1
+    assert get_jobs(seniority=SeniorityEnum.intern)[1] == 0
 
 
 def test_get_jobs_filter_by_location_substring_case_insensitive(clean_db):

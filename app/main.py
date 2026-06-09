@@ -21,7 +21,13 @@ from app.models import (
     ServiceInfo,
     StatsOut,
 )
-from app.orm_models import JobCategoryEnum, JobStatusEnum, SectorEnum, SizeEnum
+from app.orm_models import (
+    JobCategoryEnum,
+    JobStatusEnum,
+    SectorEnum,
+    SeniorityEnum,
+    SizeEnum,
+)
 from app.repository import (
     add_application,
     add_company,
@@ -103,6 +109,9 @@ def jobs(
     category: JobCategoryEnum | None = Query(
         None, description="Filter by job function (ex: software_engineering, data)"
     ),
+    seniority: SeniorityEnum | None = Query(
+        None, description="Filter by seniority bucket (ex: senior, staff, manager)"
+    ),
     location: str | None = Query(
         None, description="Case-insensitive substring match on location"
     ),
@@ -122,6 +131,7 @@ def jobs(
         size=size,
         sector=sector,
         category=category,
+        seniority=seniority,
         location=location,
         is_remote=remote,
         search=search,

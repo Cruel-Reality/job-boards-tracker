@@ -7,7 +7,13 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 from app.models import CompanyOut, JobApplicationOut, JobApplicationWithJobOut, JobOut
-from app.orm_models import JobCategoryEnum, JobStatusEnum, SectorEnum, SizeEnum
+from app.orm_models import (
+    JobCategoryEnum,
+    JobStatusEnum,
+    SectorEnum,
+    SeniorityEnum,
+    SizeEnum,
+)
 
 client = TestClient(app)
 
@@ -118,7 +124,7 @@ def test_get_jobs_passes_query_params():
         client.get(
             "/jobs?company=Acme&limit=10&offset=20&tracked=false"
             "&application_status=applied&size=big&sector=tech"
-            "&category=data&location=york&remote=true&search=engineer"
+            "&category=data&seniority=senior&location=york&remote=true&search=engineer"
         )
     mock_get_jobs.assert_called_once_with(
         company="Acme",
@@ -129,6 +135,7 @@ def test_get_jobs_passes_query_params():
         size=SizeEnum.big,
         sector=SectorEnum.tech,
         category=JobCategoryEnum.data,
+        seniority=SeniorityEnum.senior,
         location="york",
         is_remote=True,
         search="engineer",

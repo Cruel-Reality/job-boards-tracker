@@ -17,6 +17,7 @@ from app.orm_models import (
     JobPosting,
     JobStatusEnum,
     SectorEnum,
+    SeniorityEnum,
     SizeEnum,
 )
 
@@ -162,6 +163,7 @@ def get_jobs(
     size: SizeEnum | None = None,
     sector: SectorEnum | None = None,
     category: JobCategoryEnum | None = None,
+    seniority: SeniorityEnum | None = None,
     location: str | None = None,
     is_remote: bool | None = None,
     search: str | None = None,
@@ -186,6 +188,9 @@ def get_jobs(
 
         if category is not None:
             q = q.filter(JobPosting.category == category)
+
+        if seniority is not None:
+            q = q.filter(JobPosting.seniority == seniority)
 
         # Case-insensitive substring match, so "york" matches "New York, NY".
         if location:
