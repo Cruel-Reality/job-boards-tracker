@@ -95,7 +95,8 @@ def jobs(
         description="True: only jobs with an application; False: only jobs without one",
     ),
     application_status: JobStatusEnum | None = Query(
-        None, description="Filter by application status (applied, unapplied, rejected, offer)"
+        None,
+        description="Filter by application status (applied, unapplied, rejected, offer)",
     ),
     size: SizeEnum | None = Query(None, description="Filter by company size"),
     sector: SectorEnum | None = Query(None, description="Filter by company sector"),

@@ -44,7 +44,5 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Drop the company_id FK and column."""
-    op.drop_constraint(
-        "fk_job_postings_company_id", "job_postings", type_="foreignkey"
-    )
+    op.drop_constraint("fk_job_postings_company_id", "job_postings", type_="foreignkey")
     op.drop_column("job_postings", "company_id")

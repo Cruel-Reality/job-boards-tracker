@@ -53,7 +53,9 @@ def _request(method: str, path: str, **kwargs):
     try:
         resp = httpx.request(method, f"{API_BASE_URL}{path}", timeout=30, **kwargs)
     except httpx.RequestError as exc:
-        st.error(f"Cannot reach the API at {API_BASE_URL}: is the backend running? ({exc})")
+        st.error(
+            f"Cannot reach the API at {API_BASE_URL}: is the backend running? ({exc})"
+        )
         st.stop()
     if resp.status_code >= 400:
         try:
@@ -133,9 +135,7 @@ stats = api_get("/stats") or {"total_jobs": 0, "total_companies": 0, "last_sync"
 title_col, ingest_col = st.columns([4, 1])
 with title_col:
     st.title("📋 Job Boards Tracker")
-    sync_label = (
-        f"{fmt_dt(stats['last_sync'])} ET" if stats["last_sync"] else "never"
-    )
+    sync_label = f"{fmt_dt(stats['last_sync'])} ET" if stats["last_sync"] else "never"
     st.caption(
         f"{stats['total_jobs']} jobs · {stats['total_companies']} companies · "
         f"last sync {sync_label}"
@@ -235,7 +235,11 @@ jobs_tab, companies_tab, applications_tab = st.tabs(
 
 with jobs_tab:
     page = api_get("/jobs", params=job_params) or {
-        "items": [], "total": 0, "offset": 0, "limit": PAGE_SIZE, "has_more": False
+        "items": [],
+        "total": 0,
+        "offset": 0,
+        "limit": PAGE_SIZE,
+        "has_more": False,
     }
     render_pager("jobs", page)
 
@@ -274,9 +278,7 @@ with companies_tab:
     render_pager("companies", page)
 
     header = st.columns([2, 1.5, 1.5, 1.5, 1.5, 1])
-    for col, label in zip(
-        header, ["Company", "Source", "Board", "Sector", "Size", ""]
-    ):
+    for col, label in zip(header, ["Company", "Source", "Board", "Sector", "Size", ""]):
         col.markdown(f"**{label}**")
 
     for company in page["items"]:
@@ -329,14 +331,16 @@ with applications_tab:
         app_params["status_filter"] = f_app_status
 
     page = api_get("/applications", params=app_params) or {
-        "items": [], "total": 0, "offset": 0, "limit": PAGE_SIZE, "has_more": False
+        "items": [],
+        "total": 0,
+        "offset": 0,
+        "limit": PAGE_SIZE,
+        "has_more": False,
     }
     render_pager("applications", page)
 
     header = st.columns([3, 2, 2, 1.5, 2, 1])
-    for col, label in zip(
-        header, ["Job", "Company", "Status", "Applied", "Notes", ""]
-    ):
+    for col, label in zip(header, ["Job", "Company", "Status", "Applied", "Notes", ""]):
         col.markdown(f"**{label}**")
 
     for application in page["items"]:
@@ -354,9 +358,12 @@ with applications_tab:
             label_visibility="collapsed",
         )
         if new_status != application["status"]:
-            if api_patch(
-                f"/applications/{application['id']}", json={"status": new_status}
-            ) is not None:
+            if (
+                api_patch(
+                    f"/applications/{application['id']}", json={"status": new_status}
+                )
+                is not None
+            ):
                 st.rerun()
         applied_col.write(fmt_dt(application.get("applied_at")))
         notes_col.write(application.get("notes") or "-")
