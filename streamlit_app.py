@@ -23,6 +23,24 @@ EASTERN = ZoneInfo("America/New_York")
 SECTORS = ["tech", "finance", "pharma", "cybersecurity", "robotics", "healthcare"]
 SIZES = ["startup", "small", "medium", "big"]
 STATUSES = ["unapplied", "applied", "rejected", "offer"]
+CATEGORIES = [
+    "software_engineering",
+    "data",
+    "product",
+    "design",
+    "sales",
+    "marketing",
+    "finance",
+    "operations",
+    "people",
+    "other",
+]
+
+
+def prettify(value: str) -> str:
+    """Turn an enum value like 'software_engineering' into 'Software Engineering'."""
+    return value.replace("_", " ").title()
+
 
 st.set_page_config(page_title="Job Boards Tracker", layout="wide")
 
@@ -140,12 +158,19 @@ company_list = api_get("/companies", params={"limit": 500}) or {"items": []}
 company_names = [c["company"] for c in company_list["items"]]
 company_options = ["All companies", *company_names]
 
+# Sources the backend can actually ingest; drives the add-company dropdown so a
+# company can't be created with an unsupported source.
+source_options = api_get("/sources") or ["greenhouse"]
+
 
 def clear_filters():
     st.session_state["filter_company"] = "All companies"
     st.session_state["filter_status"] = "Any"
     st.session_state["filter_size"] = "Any size"
     st.session_state["filter_sector"] = "Any sector"
+    st.session_state["filter_category"] = "Any category"
+    st.session_state["filter_location"] = ""
+    st.session_state["filter_remote"] = "Any"
     st.session_state["jobs_offset"] = 0
 
 
@@ -164,12 +189,21 @@ with st.sidebar:
     f_sector = st.selectbox(
         "Industry / sector", ["Any sector", *SECTORS], key="filter_sector"
     )
-    st.caption(
-        "Title search, location, and remote filtering aren't backend filters yet — "
-        "shown as columns only."
+    f_category = st.selectbox(
+        "Job category",
+        ["Any category", *CATEGORIES],
+        key="filter_category",
+        format_func=lambda v: v if v == "Any category" else prettify(v),
     )
+    f_location = st.text_input("Location contains", key="filter_location")
+    f_remote = st.selectbox(
+        "Remote", ["Any", "Remote only", "On-site only"], key="filter_remote"
+    )
+    st.caption("Title search isn't a backend filter yet; shown as a column only.")
 
-reset_offset_on_change("jobs", (f_company, f_status, f_size, f_sector))
+reset_offset_on_change(
+    "jobs", (f_company, f_status, f_size, f_sector, f_category, f_location, f_remote)
+)
 
 job_params = {"limit": PAGE_SIZE, "offset": st.session_state.jobs_offset}
 if f_company != "All companies":
@@ -182,6 +216,14 @@ if f_size != "Any size":
     job_params["size"] = f_size
 if f_sector != "Any sector":
     job_params["sector"] = f_sector
+if f_category != "Any category":
+    job_params["category"] = f_category
+if f_location.strip():
+    job_params["location"] = f_location.strip()
+if f_remote == "Remote only":
+    job_params["remote"] = True
+elif f_remote == "On-site only":
+    job_params["remote"] = False
 
 
 # ── tabs ──────────────────────────────────────────────────────────────────────
@@ -197,20 +239,20 @@ with jobs_tab:
     }
     render_pager("jobs", page)
 
-    header = st.columns([3, 2, 2, 1.5, 1.5, 1])
+    widths = [3, 1.5, 1.5, 1.5, 1.5, 1.5, 1]
+    header = st.columns(widths)
     for col, label in zip(
-        header, ["Title", "Company", "Location", "Applied?", "", ""]
+        header, ["Title", "Company", "Category", "Location", "Applied?", "", ""]
     ):
         col.markdown(f"**{label}**")
 
     for job in page["items"]:
-        title, company, location, status, track, remove = st.columns(
-            [3, 2, 2, 1.5, 1.5, 1]
-        )
+        title, company, category, location, status, track, remove = st.columns(widths)
         title.markdown(f"[{job['title']}]({job['url']})")
         company.write(job["company"])
-        location.write(job.get("location") or "—")
-        status.write(job.get("application_status") or "—")
+        category.write(prettify(job["category"]) if job.get("category") else "-")
+        location.write(job.get("location") or "-")
+        status.write(job.get("application_status") or "-")
         if job.get("application_status") is None:
             if track.button("Track", key=f"track_{job['id']}"):
                 created = api_post(
@@ -255,7 +297,7 @@ with companies_tab:
         c1, c2, c3, c4, c5 = st.columns(5)
         new_company = c1.text_input("Company")
         new_board = c2.text_input("Board token")
-        new_source = c3.selectbox("Source", ["greenhouse"])
+        new_source = c3.selectbox("Source", source_options)
         new_sector = c4.selectbox("Sector", ["—", *SECTORS])
         new_size = c5.selectbox("Size", ["—", *SIZES])
         if st.form_submit_button("+ Add company", type="primary"):
