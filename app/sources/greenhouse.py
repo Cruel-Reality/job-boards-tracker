@@ -2,6 +2,7 @@
 
 import httpx
 
+from app.categorize import categorize_title
 from app.models import JobBase
 
 
@@ -23,6 +24,7 @@ def normalize_job(raw: dict, company: str) -> JobBase:
         company=company_name,
         title=raw["title"],
         url=raw["absolute_url"],
+        category=categorize_title(raw["title"]),
         location=location_name,
         # greenhouse does not usually have salary info
         salary_min=None,

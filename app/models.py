@@ -10,7 +10,7 @@ from typing import Generic, TypeVar
 
 from pydantic import BaseModel, ConfigDict
 
-from app.orm_models import JobStatusEnum, SectorEnum, SizeEnum
+from app.orm_models import JobCategoryEnum, JobStatusEnum, SectorEnum, SizeEnum
 
 T = TypeVar("T")
 
@@ -33,6 +33,7 @@ class JobBase(BaseModel):
     title: str
     url: str
 
+    category: JobCategoryEnum | None = None
     location: str | None = None
     salary_min: int | None = None
     salary_max: int | None = None

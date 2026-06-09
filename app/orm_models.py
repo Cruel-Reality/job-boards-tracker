@@ -19,6 +19,19 @@ from sqlalchemy.sql import func
 from app.db import Base
 
 
+class JobCategoryEnum(PyEnum):
+    software_engineering = "software_engineering"
+    data = "data"
+    product = "product"
+    design = "design"
+    sales = "sales"
+    marketing = "marketing"
+    finance = "finance"
+    operations = "operations"
+    people = "people"
+    other = "other"
+
+
 class JobPosting(Base):
     __tablename__ = "job_postings"
     __table_args__ = (
@@ -43,6 +56,10 @@ class JobPosting(Base):
     title: Mapped[str] = mapped_column(String, nullable=False)
     url: Mapped[str] = mapped_column(Text, nullable=False)
 
+    # Job function derived from the title at ingest time (see app.categorize).
+    category: Mapped["JobCategoryEnum | None"] = mapped_column(
+        Enum(JobCategoryEnum), nullable=True
+    )
     location: Mapped[str | None] = mapped_column(String, nullable=True)
     currency: Mapped[str | None] = mapped_column(String, nullable=True)
     salary_min: Mapped[int | None] = mapped_column(Integer, nullable=True)

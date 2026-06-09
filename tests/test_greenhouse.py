@@ -2,6 +2,7 @@
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
+from app.orm_models import JobCategoryEnum
 from app.sources.greenhouse import build_jobs_url, fetch_greenhouse_jobs, normalize_job
 
 
@@ -27,6 +28,7 @@ def test_normalize_job_full():
     assert job.company == "Stripe Inc"
     assert job.title == "Software Engineer"
     assert job.url == "https://boards.greenhouse.io/stripe/jobs/123"
+    assert job.category == JobCategoryEnum.software_engineering
     assert job.location == "New York, NY"
     assert job.salary_min is None
     assert job.salary_max is None
