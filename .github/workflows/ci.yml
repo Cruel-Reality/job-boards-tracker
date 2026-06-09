@@ -54,6 +54,16 @@ jobs:
       - name: Lint with Ruff
         run: uv run ruff check .
 
+      # Exercise the Alembic migrations themselves. The test suite builds its schema
+      # from the ORM (create_all), so this is the only place migrations actually run;
+      # upgrade then downgrade catches a broken migration before it reaches main.
+      - name: Verify migrations
+        env:
+          DATABASE_URL: postgresql+psycopg://job_user:devpassword@localhost:5432/job_tracker_test
+        run: |
+          uv run alembic upgrade head
+          uv run alembic downgrade base
+
       # Tests: fails the run if any test fails.
       - name: Run tests
         run: uv run pytest
