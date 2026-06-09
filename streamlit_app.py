@@ -35,6 +35,17 @@ CATEGORIES = [
     "people",
     "other",
 ]
+SENIORITIES = [
+    "intern",
+    "entry",
+    "mid",
+    "senior",
+    "staff",
+    "lead",
+    "manager",
+    "director",
+    "executive",
+]
 
 
 def prettify(value: str) -> str:
@@ -176,6 +187,7 @@ def clear_filters():
     st.session_state["filter_size"] = "Any size"
     st.session_state["filter_sector"] = "Any sector"
     st.session_state["filter_category"] = "Any category"
+    st.session_state["filter_seniority"] = "Any seniority"
     st.session_state["filter_location"] = ""
     st.session_state["filter_remote"] = "Any"
     st.session_state["filter_search"] = ""
@@ -204,6 +216,12 @@ with st.sidebar:
         key="filter_category",
         format_func=lambda v: v if v == "Any category" else prettify(v),
     )
+    f_seniority = st.selectbox(
+        "Seniority",
+        ["Any seniority", *SENIORITIES],
+        key="filter_seniority",
+        format_func=lambda v: v if v == "Any seniority" else prettify(v),
+    )
     f_location = st.text_input("Location contains", key="filter_location")
     f_remote = st.selectbox(
         "Remote", ["Any", "Remote only", "On-site only"], key="filter_remote"
@@ -211,7 +229,17 @@ with st.sidebar:
 
 reset_offset_on_change(
     "jobs",
-    (f_search, f_company, f_status, f_size, f_sector, f_category, f_location, f_remote),
+    (
+        f_search,
+        f_company,
+        f_status,
+        f_size,
+        f_sector,
+        f_category,
+        f_seniority,
+        f_location,
+        f_remote,
+    ),
 )
 
 job_params = {"limit": PAGE_SIZE, "offset": st.session_state.jobs_offset}
@@ -229,6 +257,8 @@ if f_sector != "Any sector":
     job_params["sector"] = f_sector
 if f_category != "Any category":
     job_params["category"] = f_category
+if f_seniority != "Any seniority":
+    job_params["seniority"] = f_seniority
 if f_location.strip():
     job_params["location"] = f_location.strip()
 if f_remote == "Remote only":
@@ -254,18 +284,22 @@ with jobs_tab:
     }
     render_pager("jobs", page)
 
-    widths = [3, 1.5, 1.5, 1.5, 1.5, 1.5, 1]
+    widths = [2.5, 1.3, 1.3, 1.3, 1.5, 1.2, 1.2, 1]
     header = st.columns(widths)
     for col, label in zip(
-        header, ["Title", "Company", "Category", "Location", "Applied?", "", ""]
+        header,
+        ["Title", "Company", "Category", "Seniority", "Location", "Applied?", "", ""],
     ):
         col.markdown(f"**{label}**")
 
     for job in page["items"]:
-        title, company, category, location, status, track, remove = st.columns(widths)
+        title, company, category, seniority, location, status, track, remove = (
+            st.columns(widths)
+        )
         title.markdown(f"[{job['title']}]({job['url']})")
         company.write(job["company"])
         category.write(prettify(job["category"]) if job.get("category") else "-")
+        seniority.write(prettify(job["seniority"]) if job.get("seniority") else "-")
         location.write(job.get("location") or "-")
         status.write(job.get("application_status") or "-")
         if job.get("application_status") is None:
