@@ -144,12 +144,14 @@ with ingest_col:
     if st.button("⟳ Ingest all", type="primary", use_container_width=True):
         result = api_post("/ingest/all")
         if result is not None:
+            # No st.rerun() here: it would abort before the sidebar renders and
+            # reset the filter widgets. The button click already triggers a rerun,
+            # and the jobs table below queries after ingest, so it shows new data.
             st.success(
                 f"Ingested {result['jobs_fetched']} jobs from "
                 f"{result['successful_companies']} companies "
                 f"({len(result['failed_companies'])} failed)."
             )
-            st.rerun()
 
 
 # ── sidebar filters (GET /jobs query params) ──────────────────────────────────
