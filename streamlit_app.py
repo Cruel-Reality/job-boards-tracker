@@ -42,6 +42,11 @@ def prettify(value: str) -> str:
     return value.replace("_", " ").title()
 
 
+def slugify(name: str) -> str:
+    """Best-guess source slug from a company name, e.g. 'Acme Corp' -> 'acmecorp'."""
+    return "".join(ch for ch in name.lower() if ch.isalnum())
+
+
 st.set_page_config(page_title="Job Boards Tracker", layout="wide")
 
 
@@ -304,17 +309,24 @@ with companies_tab:
     with st.form("add_company", clear_on_submit=True):
         c1, c2, c3, c4, c5 = st.columns(5)
         new_company = c1.text_input("Company")
-        new_board = c2.text_input("Board token")
+        new_board = c2.text_input(
+            "Board / slug",
+            help="Source board slug, e.g. the part after boards.greenhouse.io/. "
+            "Leave blank to use the company name.",
+        )
         new_source = c3.selectbox("Source", source_options)
         new_sector = c4.selectbox("Sector", ["-", *SECTORS])
         new_size = c5.selectbox("Size", ["-", *SIZES])
         if st.form_submit_button("+ Add company", type="primary"):
-            if not new_company or not new_board:
-                st.warning("Company and board token are required.")
+            if not new_company:
+                st.warning("Company is required.")
             else:
+                # Default the board to a slug of the company name; the backend
+                # validates it, so a wrong guess comes back as a clear error.
+                board = new_board.strip() or slugify(new_company)
                 payload = {
                     "company": new_company,
-                    "board": new_board,
+                    "board": board,
                     "source": new_source,
                 }
                 if new_sector != "-":
@@ -322,7 +334,7 @@ with companies_tab:
                 if new_size != "-":
                     payload["size"] = new_size
                 if api_post("/company", json=payload) is not None:
-                    st.success(f"Added {new_company}.")
+                    st.success(f"Added {new_company} (board '{board}').")
                     st.rerun()
 
 
