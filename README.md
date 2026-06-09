@@ -26,6 +26,24 @@ uv run uvicorn app.main:app --reload   # run the API
 
 Interactive API docs: http://127.0.0.1:8000/docs
 
+## Frontend (Streamlit)
+
+With the API running, start the UI in a second terminal:
+
+```bash
+uv run streamlit run streamlit_app.py
+```
+
+It opens at http://localhost:8501 and talks to the API over HTTP. Point it at a
+non-default backend with `API_BASE_URL`:
+
+```bash
+API_BASE_URL=http://127.0.0.1:8000 uv run streamlit run streamlit_app.py
+```
+
+The UI lists/filters jobs, manages tracked companies, triggers ingestion, and tracks
+applications.
+
 ## Configuration
 
 Copy `.env.example` to `.env` and adjust as needed. `.env` is gitignored and must never be committed.
