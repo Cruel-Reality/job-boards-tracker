@@ -49,6 +49,16 @@ SOURCE_FETCHERS = {
 app = FastAPI(title="Job Board Tracker")
 
 
+@app.get("/sources", response_model=list[str])
+def sources():
+    """Source identifiers we can actually ingest (the keys of SOURCE_FETCHERS).
+
+    The frontend uses this to populate its source dropdown, so a company can only
+    be added with a source the backend knows how to fetch.
+    """
+    return sorted(SOURCE_FETCHERS)
+
+
 @app.get("/health", status_code=200)
 def health():
     return ServiceInfo(
@@ -161,6 +171,14 @@ def companies(
 
 @app.post("/company", response_model=CompanyOut, status_code=status.HTTP_201_CREATED)
 def create_company(company: CompanyCreate):
+    # Reject sources we can't ingest, so a typo like "linkedin" never reaches the DB
+    # and silently get skipped by /ingest/all.
+    if company.source not in SOURCE_FETCHERS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported source '{company.source}'. "
+            f"Supported sources: {sorted(SOURCE_FETCHERS)}",
+        )
     new_company = add_company(company)
     if new_company is None:
         raise HTTPException(

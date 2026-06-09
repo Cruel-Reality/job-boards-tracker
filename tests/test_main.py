@@ -180,6 +180,24 @@ def test_create_company():
     assert response.json()["company"] == "Acme"
 
 
+def test_sources_lists_supported_sources():
+    response = client.get("/sources")
+    assert response.status_code == 200
+    assert "greenhouse" in response.json()
+
+
+def test_create_company_rejects_unsupported_source():
+    # Validation happens before the DB layer, so add_company must not be called.
+    with patch("app.main.add_company") as mock_add:
+        response = client.post(
+            "/company",
+            json={"source": "linkedin", "company": "Acme", "board": "acme"},
+        )
+    assert response.status_code == 400
+    assert "linkedin" in response.json()["detail"]
+    mock_add.assert_not_called()
+
+
 def test_create_company_duplicate_returns_400():
     with patch("app.main.add_company", return_value=None):
         response = client.post(
