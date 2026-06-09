@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.git/
+.github/
+.env
+PLAN.md
+wireframe.html
+DOCKER_NOTES.md
+UV_CHEATSHEET.md
+tests/
