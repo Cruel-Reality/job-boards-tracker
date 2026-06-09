@@ -162,6 +162,7 @@ def get_jobs(
     category: JobCategoryEnum | None = None,
     location: str | None = None,
     is_remote: bool | None = None,
+    search: str | None = None,
 ) -> tuple[list[JobPosting], int]:
     """Return a page of jobs matching the given filters, plus the total match count.
 
@@ -176,6 +177,10 @@ def get_jobs(
         q = session.query(JobPosting).options(joinedload(JobPosting.application))
         if company:
             q = q.filter(JobPosting.company == company)
+
+        # Case-insensitive substring match on the job title.
+        if search:
+            q = q.filter(JobPosting.title.ilike(f"%{search}%"))
 
         if category is not None:
             q = q.filter(JobPosting.category == category)

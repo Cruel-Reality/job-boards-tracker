@@ -119,6 +119,17 @@ def test_get_jobs_filter_by_location_substring_case_insensitive(clean_db):
     assert get_jobs(location="Austin")[1] == 0
 
 
+def test_get_jobs_search_by_title_substring_case_insensitive(clean_db):
+    upsert_jobs([_job(source_job_id="1", title="Senior Software Engineer")])
+    upsert_jobs([_job(source_job_id="2", title="Account Executive")])
+
+    matched, total = get_jobs(search="engineer")
+    assert total == 1
+    assert matched[0].title == "Senior Software Engineer"
+    assert get_jobs(search="account")[1] == 1
+    assert get_jobs(search="designer")[1] == 0
+
+
 def test_get_jobs_filter_by_remote(clean_db):
     upsert_jobs([_job(source_job_id="1", location="Remote", is_remote=True)])
     upsert_jobs([_job(source_job_id="2", location="Boston, MA", is_remote=False)])

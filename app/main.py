@@ -109,6 +109,9 @@ def jobs(
     remote: bool | None = Query(
         None, description="True: only remote jobs; False: only non-remote"
     ),
+    search: str | None = Query(
+        None, description="Case-insensitive substring match on job title"
+    ),
 ) -> Page[JobOut]:
     items, total = get_jobs(
         company=company,
@@ -121,6 +124,7 @@ def jobs(
         category=category,
         location=location,
         is_remote=remote,
+        search=search,
     )
     return Page[JobOut](
         items=items,

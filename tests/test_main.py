@@ -118,7 +118,7 @@ def test_get_jobs_passes_query_params():
         client.get(
             "/jobs?company=Acme&limit=10&offset=20&tracked=false"
             "&application_status=applied&size=big&sector=tech"
-            "&category=data&location=york&remote=true"
+            "&category=data&location=york&remote=true&search=engineer"
         )
     mock_get_jobs.assert_called_once_with(
         company="Acme",
@@ -131,6 +131,7 @@ def test_get_jobs_passes_query_params():
         category=JobCategoryEnum.data,
         location="york",
         is_remote=True,
+        search="engineer",
     )
 
 

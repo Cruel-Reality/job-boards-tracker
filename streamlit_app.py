@@ -171,6 +171,7 @@ def clear_filters():
     st.session_state["filter_category"] = "Any category"
     st.session_state["filter_location"] = ""
     st.session_state["filter_remote"] = "Any"
+    st.session_state["filter_search"] = ""
     st.session_state["jobs_offset"] = 0
 
 
@@ -181,6 +182,7 @@ if st.session_state.get("filter_company") not in company_options:
 with st.sidebar:
     st.header("Filters")
     st.button("Clear filters", on_click=clear_filters, use_container_width=True)
+    f_search = st.text_input("Search titles", key="filter_search")
     f_company = st.selectbox("Company", company_options, key="filter_company")
     f_status = st.selectbox(
         "Application status", ["Any", "Not tracked", *STATUSES], key="filter_status"
@@ -199,13 +201,15 @@ with st.sidebar:
     f_remote = st.selectbox(
         "Remote", ["Any", "Remote only", "On-site only"], key="filter_remote"
     )
-    st.caption("Title search isn't a backend filter yet; shown as a column only.")
 
 reset_offset_on_change(
-    "jobs", (f_company, f_status, f_size, f_sector, f_category, f_location, f_remote)
+    "jobs",
+    (f_search, f_company, f_status, f_size, f_sector, f_category, f_location, f_remote),
 )
 
 job_params = {"limit": PAGE_SIZE, "offset": st.session_state.jobs_offset}
+if f_search.strip():
+    job_params["search"] = f_search.strip()
 if f_company != "All companies":
     job_params["company"] = f_company
 if f_status == "Not tracked":
