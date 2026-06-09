@@ -4,11 +4,16 @@ from sqlalchemy import engine_from_config, pool
 
 from alembic import context
 from app import orm_models  # noqa: F401
-from app.db import Base
+from app.db import DATABASE_URL, Base
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
+
+# Use the same DATABASE_URL the app resolves (env var, with .env fallback) rather
+# than the static sqlalchemy.url in alembic.ini, so migrations honor the active
+# environment — e.g. the @db:5432 host inside docker compose vs @localhost on the host.
+config.set_main_option("sqlalchemy.url", DATABASE_URL)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
