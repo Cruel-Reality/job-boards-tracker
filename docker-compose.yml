@@ -41,6 +41,32 @@ services:
       timeout: 3s
       retries: 5
 
+  # The FastAPI backend, built from our own Dockerfile (contrast with db's
+  # prebuilt image: — our app's code lives only here, so no public image exists).
+  api:
+    build: .
+    container_name: job_tracker_api
+
+    # Don't start until the db's healthcheck passes, so migrations on boot don't
+    # race a database that isn't accepting connections yet.
+    depends_on:
+      db:
+        condition: service_healthy
+
+    # Inside compose, services reach each other by service name. The db is at
+    # host "db", not "localhost" (localhost in a container is the container itself).
+    # This overrides the localhost value in .env, which is for running on the host.
+    environment:
+      DATABASE_URL: postgresql+psycopg://job_user:devpassword@db:5432/job_tracker
+
+    # HOST:CONTAINER. Publishes the API on localhost:8000 for the browser/frontend.
+    ports:
+      - "8000:8000"
+
+    # Override the Dockerfile's CMD: apply migrations first, then serve. This is
+    # what lets `docker compose up` work against a brand-new database in one step.
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+
 # Top-level declaration of the named volume referenced above. Docker manages where
 # this lives on disk; you refer to it only by the name "pgdata".
 volumes:
