@@ -33,7 +33,8 @@ def test_normalize_job_full():
     assert job.salary_min is None
     assert job.salary_max is None
     assert job.currency is None
-    assert job.is_remote is None
+    # A concrete office location is treated as not remote.
+    assert job.is_remote is False
 
 
 def test_normalize_job_uses_fallback_company_when_company_name_absent():
@@ -58,6 +59,20 @@ def test_normalize_job_no_location():
     }
     job = normalize_job(raw, company="ACME")
     assert job.location is None
+    # No location at all is assumed remote.
+    assert job.is_remote is True
+
+
+def test_normalize_job_remote_location_sets_is_remote():
+    raw = {
+        "id": 999,
+        "title": "Engineer",
+        "absolute_url": "https://example.com/job",
+        "location": {"name": "Remote - US"},
+        "company_name": "ACME",
+    }
+    job = normalize_job(raw, company="ACME")
+    assert job.is_remote is True
 
 
 async def test_fetch_greenhouse_jobs_returns_normalized_jobs():

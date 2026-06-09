@@ -13,6 +13,7 @@ from app.models import CompanyCreate, JobApplicationCreate, JobApplicationUpdate
 from app.orm_models import (
     Company,
     JobApplication,
+    JobCategoryEnum,
     JobPosting,
     JobStatusEnum,
     SectorEnum,
@@ -158,6 +159,9 @@ def get_jobs(
     application_status: JobStatusEnum | None = None,
     size: SizeEnum | None = None,
     sector: SectorEnum | None = None,
+    category: JobCategoryEnum | None = None,
+    location: str | None = None,
+    is_remote: bool | None = None,
 ) -> tuple[list[JobPosting], int]:
     """Return a page of jobs matching the given filters, plus the total match count.
 
@@ -172,6 +176,16 @@ def get_jobs(
         q = session.query(JobPosting).options(joinedload(JobPosting.application))
         if company:
             q = q.filter(JobPosting.company == company)
+
+        if category is not None:
+            q = q.filter(JobPosting.category == category)
+
+        # Case-insensitive substring match, so "york" matches "New York, NY".
+        if location:
+            q = q.filter(JobPosting.location.ilike(f"%{location}%"))
+
+        if is_remote is not None:
+            q = q.filter(JobPosting.is_remote == is_remote)
 
         # size/sector live on the linked company, so join via the company_id FK.
         if size is not None or sector is not None:

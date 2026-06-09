@@ -21,7 +21,7 @@ from app.models import (
     ServiceInfo,
     StatsOut,
 )
-from app.orm_models import JobStatusEnum, SectorEnum, SizeEnum
+from app.orm_models import JobCategoryEnum, JobStatusEnum, SectorEnum, SizeEnum
 from app.repository import (
     add_application,
     add_company,
@@ -89,6 +89,15 @@ def jobs(
     ),
     size: SizeEnum | None = Query(None, description="Filter by company size"),
     sector: SectorEnum | None = Query(None, description="Filter by company sector"),
+    category: JobCategoryEnum | None = Query(
+        None, description="Filter by job function (ex: software_engineering, data)"
+    ),
+    location: str | None = Query(
+        None, description="Case-insensitive substring match on location"
+    ),
+    remote: bool | None = Query(
+        None, description="True: only remote jobs; False: only non-remote"
+    ),
 ) -> Page[JobOut]:
     items, total = get_jobs(
         company=company,
@@ -98,6 +107,9 @@ def jobs(
         application_status=application_status,
         size=size,
         sector=sector,
+        category=category,
+        location=location,
+        is_remote=remote,
     )
     return Page[JobOut](
         items=items,

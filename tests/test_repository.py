@@ -1,7 +1,7 @@
 """Repository tests against a real database (skipped locally without a test DB)."""
 
 from app.models import CompanyCreate, JobApplicationCreate, JobBase
-from app.orm_models import JobStatusEnum, SectorEnum, SizeEnum
+from app.orm_models import JobCategoryEnum, JobStatusEnum, SectorEnum, SizeEnum
 from app.repository import (
     add_application,
     add_company,
@@ -17,13 +17,23 @@ from app.repository import (
 )
 
 
-def _job(source_job_id="1", company="Acme", title="Engineer"):
+def _job(
+    source_job_id="1",
+    company="Acme",
+    title="Engineer",
+    category=None,
+    location=None,
+    is_remote=None,
+):
     return JobBase(
         source="greenhouse",
         source_job_id=source_job_id,
         company=company,
         title=title,
         url=f"https://example.com/{source_job_id}",
+        category=category,
+        location=location,
+        is_remote=is_remote,
     )
 
 
@@ -86,6 +96,37 @@ def test_get_jobs_filter_by_size_and_sector(clean_db):
     assert get_jobs(size=SizeEnum.startup)[1] == 0
     assert get_jobs(sector=SectorEnum.finance)[1] == 1
     assert get_jobs(sector=SectorEnum.tech)[1] == 0
+
+
+def test_get_jobs_filter_by_category(clean_db):
+    upsert_jobs([_job(source_job_id="1", category=JobCategoryEnum.data)])
+    upsert_jobs([_job(source_job_id="2", category=JobCategoryEnum.sales)])
+
+    assert get_jobs(category=JobCategoryEnum.data)[1] == 1
+    assert get_jobs(category=JobCategoryEnum.sales)[1] == 1
+    assert get_jobs(category=JobCategoryEnum.finance)[1] == 0
+
+
+def test_get_jobs_filter_by_location_substring_case_insensitive(clean_db):
+    upsert_jobs([_job(source_job_id="1", location="New York, NY")])
+    upsert_jobs([_job(source_job_id="2", location="San Francisco, CA")])
+
+    # Substring and case-insensitive: "york" matches "New York, NY".
+    matched, total = get_jobs(location="york")
+    assert total == 1
+    assert matched[0].location == "New York, NY"
+    assert get_jobs(location="CA")[1] == 1
+    assert get_jobs(location="Austin")[1] == 0
+
+
+def test_get_jobs_filter_by_remote(clean_db):
+    upsert_jobs([_job(source_job_id="1", location="Remote", is_remote=True)])
+    upsert_jobs([_job(source_job_id="2", location="Boston, MA", is_remote=False)])
+
+    assert get_jobs(is_remote=True)[1] == 1
+    assert get_jobs(is_remote=False)[1] == 1
+    # No filter returns both.
+    assert get_jobs()[1] == 2
 
 
 def test_get_jobs_pagination(clean_db):
