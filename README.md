@@ -72,7 +72,7 @@ docker compose down -v       # stop Postgres and wipe data
 | `GET`    | `/sources`                 | List ingestable source identifiers           |
 | `GET`    | `/sources/greenhouse`      | Fetch + store jobs for a Greenhouse board    |
 | `POST`   | `/ingest/all`              | Ingest jobs for all tracked companies        |
-| `GET`    | `/jobs`                    | List jobs (filter by company, category, location, remote, status) |
+| `GET`    | `/jobs`                    | List jobs (filter by company, category, seniority, location, remote, status; search titles) |
 | `GET`    | `/jobs/{id}`               | Get a single job                             |
 | `DELETE` | `/jobs/{id}`               | Remove a single job                          |
 | `GET`    | `/companies`               | List tracked companies                       |
