@@ -130,6 +130,20 @@ def test_upsert_removes_stale_jobs_except_meaningful_applications(clean_db):
     assert {j.source_job_id for j in remaining} == {"1", "4"}
 
 
+def test_upsert_empty_fetch_skips_stale_cleanup(clean_db):
+    # An empty fetch is treated as a likely failure, not an empty board, so it must
+    # NOT delete the company's existing jobs.
+    company = add_company(
+        CompanyCreate(source="greenhouse", company="Acme", board="acme")
+    )
+    upsert_jobs([_job("1"), _job("2")], company_id=company.id)
+
+    upsert_jobs([], company_id=company.id)
+
+    _, total = get_jobs()
+    assert total == 2
+
+
 def test_delete_company_keeps_meaningful_applications_and_removes_the_rest(clean_db):
     company = add_company(
         CompanyCreate(source="greenhouse", company="Stripe", board="stripe")

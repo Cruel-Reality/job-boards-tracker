@@ -72,8 +72,10 @@ def upsert_jobs(jobs, company_id=None):
                 )
                 session.add(db_job)
 
-        # Drop jobs that vanished from the board (tracked ingests only).
-        if company_id is not None:
+        # Drop jobs that vanished from the board (tracked ingests only). Skip when
+        # the fetch returned nothing: an empty result is far more likely a fetch
+        # failure than a genuinely empty board, and we won't wipe jobs on a hiccup.
+        if company_id is not None and seen_ids:
             _remove_stale_jobs(session, company_id, seen_ids)
 
         session.commit()
@@ -91,19 +93,21 @@ def _remove_stale_jobs(session, company_id, seen_ids):
     (applied/rejected/offer) — you want visibility into those even after the posting
     is gone. Everything else (untracked, or tracked-but-unapplied) is deleted, along
     with any unapplied application it has. seen_ids are the source_job_ids still
-    present in the latest fetch; an empty set means the board returned no jobs.
+    present in the latest fetch; the caller only invokes this for a non-empty fetch.
     """
     protected_ids = session.query(JobApplication.job_posting_id).filter(
         JobApplication.status != JobStatusEnum.unapplied
     )
-    stale = session.query(JobPosting.id).filter(
-        JobPosting.company_id == company_id,
-        ~JobPosting.id.in_(protected_ids),
-    )
-    if seen_ids:
-        stale = stale.filter(JobPosting.source_job_id.notin_(seen_ids))
-
-    stale_ids = [row.id for row in stale.all()]
+    stale_ids = [
+        row.id
+        for row in session.query(JobPosting.id)
+        .filter(
+            JobPosting.company_id == company_id,
+            JobPosting.source_job_id.notin_(seen_ids),
+            ~JobPosting.id.in_(protected_ids),
+        )
+        .all()
+    ]
     if not stale_ids:
         return
 
