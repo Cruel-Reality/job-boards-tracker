@@ -8,12 +8,17 @@ Run with:  uv run streamlit run streamlit_app.py
 """
 
 import os
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 
 import httpx
 import streamlit as st
 
 API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8000")
 PAGE_SIZE = 25
+
+# Backend timestamps are naive UTC (Postgres now()); display them in US Eastern.
+EASTERN = ZoneInfo("America/New_York")
 
 SECTORS = ["tech", "finance", "pharma", "cybersecurity", "robotics", "healthcare"]
 SIZES = ["startup", "small", "medium", "big"]
@@ -62,10 +67,13 @@ def api_delete(path):
 
 
 def fmt_dt(value):
-    """Format an ISO datetime string as 'YYYY-MM-DD HH:MM', or a dash if missing."""
+    """Format a backend ISO datetime in US Eastern, e.g. '9:14 AM 08-June-2026'."""
     if not value:
         return "—"
-    return value.replace("T", " ")[:16]
+    dt = datetime.fromisoformat(value)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(EASTERN).strftime("%-I:%M %p %d-%B-%Y")
 
 
 def render_pager(key: str, page: dict):
@@ -107,9 +115,14 @@ stats = api_get("/stats") or {"total_jobs": 0, "total_companies": 0, "last_job_u
 title_col, ingest_col = st.columns([4, 1])
 with title_col:
     st.title("📋 Job Boards Tracker")
+    last_sync = (
+        f"{fmt_dt(stats['last_job_update'])} ET"
+        if stats["last_job_update"]
+        else "never"
+    )
     st.caption(
         f"{stats['total_jobs']} jobs · {stats['total_companies']} companies · "
-        f"last sync {fmt_dt(stats['last_job_update'])}"
+        f"last sync {last_sync}"
     )
 with ingest_col:
     if st.button("⟳ Ingest all", type="primary", use_container_width=True):
@@ -127,15 +140,32 @@ with ingest_col:
 
 company_list = api_get("/companies", params={"limit": 500}) or {"items": []}
 company_names = [c["company"] for c in company_list["items"]]
+company_options = ["All companies", *company_names]
+
+
+def clear_filters():
+    st.session_state["filter_company"] = "All companies"
+    st.session_state["filter_status"] = "Any"
+    st.session_state["filter_size"] = "Any size"
+    st.session_state["filter_sector"] = "Any sector"
+    st.session_state["jobs_offset"] = 0
+
+
+# Drop a stale selection (e.g. a company that was just deleted) back to the default.
+if st.session_state.get("filter_company") not in company_options:
+    st.session_state["filter_company"] = "All companies"
 
 with st.sidebar:
     st.header("Filters")
-    f_company = st.selectbox("Company", ["All companies", *company_names])
+    st.button("Clear filters", on_click=clear_filters, use_container_width=True)
+    f_company = st.selectbox("Company", company_options, key="filter_company")
     f_status = st.selectbox(
-        "Application status", ["Any", "Not tracked", *STATUSES]
+        "Application status", ["Any", "Not tracked", *STATUSES], key="filter_status"
     )
-    f_size = st.selectbox("Company size", ["Any size", *SIZES])
-    f_sector = st.selectbox("Industry / sector", ["Any sector", *SECTORS])
+    f_size = st.selectbox("Company size", ["Any size", *SIZES], key="filter_size")
+    f_sector = st.selectbox(
+        "Industry / sector", ["Any sector", *SECTORS], key="filter_sector"
+    )
     st.caption(
         "Title search, location, and remote filtering aren't backend filters yet — "
         "shown as columns only."
