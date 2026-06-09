@@ -32,6 +32,18 @@ class JobCategoryEnum(PyEnum):
     other = "other"
 
 
+class SeniorityEnum(PyEnum):
+    intern = "intern"
+    entry = "entry"
+    mid = "mid"
+    senior = "senior"
+    staff = "staff"
+    lead = "lead"
+    manager = "manager"
+    director = "director"
+    executive = "executive"
+
+
 class JobPosting(Base):
     __tablename__ = "job_postings"
     __table_args__ = (
@@ -59,6 +71,10 @@ class JobPosting(Base):
     # Job function derived from the title at ingest time (see app.categorize).
     category: Mapped["JobCategoryEnum | None"] = mapped_column(
         Enum(JobCategoryEnum), nullable=True
+    )
+    # Seniority bucket derived from the title (see app.seniority); None if unsignaled.
+    seniority: Mapped["SeniorityEnum | None"] = mapped_column(
+        Enum(SeniorityEnum), nullable=True
     )
     location: Mapped[str | None] = mapped_column(String, nullable=True)
     currency: Mapped[str | None] = mapped_column(String, nullable=True)

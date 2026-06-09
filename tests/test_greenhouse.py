@@ -29,6 +29,8 @@ def test_normalize_job_full():
     assert job.title == "Software Engineer"
     assert job.url == "https://boards.greenhouse.io/stripe/jobs/123"
     assert job.category == JobCategoryEnum.software_engineering
+    # "Software Engineer" carries no seniority marker.
+    assert job.seniority is None
     assert job.location == "New York, NY"
     assert job.salary_min is None
     assert job.salary_max is None

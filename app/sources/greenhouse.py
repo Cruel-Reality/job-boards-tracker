@@ -5,6 +5,7 @@ import httpx
 from app.categorize import categorize_title
 from app.models import JobBase
 from app.normalize import infer_remote
+from app.seniority import classify_seniority
 
 
 def build_jobs_url(board_token: str) -> str:
@@ -26,6 +27,7 @@ def normalize_job(raw: dict, company: str) -> JobBase:
         title=raw["title"],
         url=raw["absolute_url"],
         category=categorize_title(raw["title"]),
+        seniority=classify_seniority(raw["title"]),
         location=location_name,
         # greenhouse does not usually have salary info
         salary_min=None,
