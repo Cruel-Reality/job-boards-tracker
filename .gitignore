@@ -5,10 +5,10 @@ __pycache__/
 .idea/
 .vscode/
 
-# Local planning / design artifacts — not committed
+# Local planning / design artifacts - not committed
 PLAN.md
 wireframe.html
 
-# Local learning notes — not committed
+# Local learning notes - not committed
 DOCKER_NOTES.md
 UV_CHEATSHEET.md

@@ -69,9 +69,10 @@ docker compose down -v       # stop Postgres and wipe data
 | Method   | Path                       | Description                                  |
 | -------- | -------------------------- | -------------------------------------------- |
 | `GET`    | `/health`                  | Service status                               |
+| `GET`    | `/sources`                 | List ingestable source identifiers           |
 | `GET`    | `/sources/greenhouse`      | Fetch + store jobs for a Greenhouse board    |
 | `POST`   | `/ingest/all`              | Ingest jobs for all tracked companies        |
-| `GET`    | `/jobs`                    | List jobs (filter by company, status, etc.)  |
+| `GET`    | `/jobs`                    | List jobs (filter by company, category, location, remote, status) |
 | `GET`    | `/jobs/{id}`               | Get a single job                             |
 | `DELETE` | `/jobs/{id}`               | Remove a single job                          |
 | `GET`    | `/companies`               | List tracked companies                       |
@@ -83,7 +84,7 @@ docker compose down -v       # stop Postgres and wipe data
 | `DELETE` | `/applications/{id}`       | Remove an application                        |
 
 List endpoints (`/jobs`, `/companies`, `/applications`) are paginated: pass `limit` and `offset`,
-and the response is an envelope — `{ "items": [...], "total", "limit", "offset", "has_more" }`.
+and the response is an envelope: `{ "items": [...], "total", "limit", "offset", "has_more" }`.
 
 ## Project layout
 

@@ -93,7 +93,7 @@ def _remove_stale_jobs(session, company_id, seen_ids):
     """Delete a company's jobs that are no longer posted and not worth keeping.
 
     A job is kept if it has an application with a status other than 'unapplied'
-    (applied/rejected/offer) — you want visibility into those even after the posting
+    (applied/rejected/offer); you want visibility into those even after the posting
     is gone. Everything else (untracked, or tracked-but-unapplied) is deleted, along
     with any unapplied application it has. seen_ids are the source_job_ids still
     present in the latest fetch; the caller only invokes this for a non-empty fetch.
@@ -272,7 +272,7 @@ def delete_company_by_id(db_id: int) -> bool:
 
     Jobs with an application status other than 'unapplied' (applied/rejected/offer)
     are kept for visibility and detached from the company (company_id set to NULL).
-    Every other job for the company — untracked or tracked-but-unapplied — is deleted
+    Every other job for the company (untracked or tracked-but-unapplied) is deleted
     along with any unapplied application.
 
     Returns True if the company existed and was deleted, else False.

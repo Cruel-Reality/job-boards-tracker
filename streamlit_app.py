@@ -53,7 +53,7 @@ def _request(method: str, path: str, **kwargs):
     try:
         resp = httpx.request(method, f"{API_BASE_URL}{path}", timeout=30, **kwargs)
     except httpx.RequestError as exc:
-        st.error(f"Cannot reach the API at {API_BASE_URL} — is the backend running? ({exc})")
+        st.error(f"Cannot reach the API at {API_BASE_URL}: is the backend running? ({exc})")
         st.stop()
     if resp.status_code >= 400:
         try:
@@ -87,7 +87,7 @@ def api_delete(path):
 def fmt_dt(value):
     """Format a backend ISO datetime in US Eastern, e.g. '9:14 AM 08-June-2026'."""
     if not value:
-        return "—"
+        return "-"
     dt = datetime.fromisoformat(value)
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
@@ -286,8 +286,8 @@ with companies_tab:
         name.write(company["company"])
         source.write(company["source"])
         board.write(company["board"])
-        sector.write(company.get("sector") or "—")
-        size.write(company.get("size") or "—")
+        sector.write(company.get("sector") or "-")
+        size.write(company.get("size") or "-")
         if remove.button("Delete", key=f"delco_{company['id']}"):
             if api_delete(f"/companies/{company['id']}") is not None:
                 st.rerun()
@@ -298,8 +298,8 @@ with companies_tab:
         new_company = c1.text_input("Company")
         new_board = c2.text_input("Board token")
         new_source = c3.selectbox("Source", source_options)
-        new_sector = c4.selectbox("Sector", ["—", *SECTORS])
-        new_size = c5.selectbox("Size", ["—", *SIZES])
+        new_sector = c4.selectbox("Sector", ["-", *SECTORS])
+        new_size = c5.selectbox("Size", ["-", *SIZES])
         if st.form_submit_button("+ Add company", type="primary"):
             if not new_company or not new_board:
                 st.warning("Company and board token are required.")
@@ -309,9 +309,9 @@ with companies_tab:
                     "board": new_board,
                     "source": new_source,
                 }
-                if new_sector != "—":
+                if new_sector != "-":
                     payload["sector"] = new_sector
-                if new_size != "—":
+                if new_size != "-":
                     payload["size"] = new_size
                 if api_post("/company", json=payload) is not None:
                     st.success(f"Added {new_company}.")
@@ -359,7 +359,7 @@ with applications_tab:
             ) is not None:
                 st.rerun()
         applied_col.write(fmt_dt(application.get("applied_at")))
-        notes_col.write(application.get("notes") or "—")
+        notes_col.write(application.get("notes") or "-")
         if remove_col.button("✕", key=f"delapp_{application['id']}", help="Remove"):
             if api_delete(f"/applications/{application['id']}") is not None:
                 st.rerun()

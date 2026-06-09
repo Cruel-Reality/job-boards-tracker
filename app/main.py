@@ -1,6 +1,6 @@
 """FastAPI application: HTTP routes for jobs, companies, and applications.
 
-Routes stay thin — request validation and response shaping only — and delegate all
+Routes stay thin: request validation and response shaping only, and delegate all
 database work to app.repository.
 """
 
