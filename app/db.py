@@ -4,6 +4,7 @@ Configuration comes from the environment (loaded from a local .env in developmen
 """
 
 import os
+from contextlib import contextmanager
 
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
@@ -33,3 +34,13 @@ class Base(DeclarativeBase):
 def get_session():
     """Return a new session. The caller is responsible for closing it."""
     return SessionLocal()
+
+
+@contextmanager
+def session_scope():
+    """Yield a session and guarantee it is closed on exit (success or error)."""
+    session = SessionLocal()
+    try:
+        yield session
+    finally:
+        session.close()

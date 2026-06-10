@@ -1,14 +1,14 @@
 """Database access layer.
 
-All reads and writes go through these functions. Each opens its own session and
-is responsible for closing it (see the try/finally in every function).
+All reads and writes go through these functions. Each runs inside a session_scope
+context manager, which owns opening and closing the session.
 """
 
 from sqlalchemy import and_, func, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload
 
-from app.db import get_session
+from app.db import session_scope
 from app.models import CompanyCreate, JobApplicationCreate, JobApplicationUpdate
 from app.orm_models import (
     Company,
@@ -32,64 +32,63 @@ def upsert_jobs(jobs, company_id=None):
     posted (see _remove_stale_jobs), so callers must pass the company's FULL current
     job set in one call.
     """
-    session = get_session()
-    try:
-        seen_ids = set()
-        for job in jobs:
-            seen_ids.add(job.source_job_id)
-            existing = (
-                session.query(JobPosting)
-                .filter(
-                    JobPosting.source == job.source,
-                    JobPosting.source_job_id == job.source_job_id,
+    with session_scope() as session:
+        try:
+            seen_ids = set()
+            for job in jobs:
+                seen_ids.add(job.source_job_id)
+                existing = (
+                    session.query(JobPosting)
+                    .filter(
+                        JobPosting.source == job.source,
+                        JobPosting.source_job_id == job.source_job_id,
+                    )
+                    .one_or_none()
                 )
-                .one_or_none()
-            )
-            if existing:
-                existing.company = job.company
-                existing.title = job.title
-                existing.url = job.url
-                existing.category = job.category
-                existing.seniority = job.seniority
-                existing.location = job.location
-                existing.currency = job.currency
-                existing.salary_min = job.salary_min
-                existing.salary_max = job.salary_max
-                existing.is_remote = job.is_remote
-                # Only overwrite the company link when a known id is supplied,
-                # so the ad-hoc source endpoint doesn't wipe an existing link.
-                if company_id is not None:
-                    existing.company_id = company_id
-            else:
-                db_job = JobPosting(
-                    source=job.source,
-                    source_job_id=job.source_job_id,
-                    company=job.company,
-                    company_id=company_id,
-                    title=job.title,
-                    url=job.url,
-                    category=job.category,
-                    seniority=job.seniority,
-                    location=job.location,
-                    currency=job.currency,
-                    salary_min=job.salary_min,
-                    salary_max=job.salary_max,
-                    is_remote=job.is_remote,
-                )
-                session.add(db_job)
+                if existing:
+                    existing.company = job.company
+                    existing.title = job.title
+                    existing.url = job.url
+                    existing.category = job.category
+                    existing.seniority = job.seniority
+                    existing.location = job.location
+                    existing.currency = job.currency
+                    existing.salary_min = job.salary_min
+                    existing.salary_max = job.salary_max
+                    existing.is_remote = job.is_remote
+                    # Only overwrite the company link when a known id is supplied,
+                    # so the ad-hoc source endpoint doesn't wipe an existing link.
+                    if company_id is not None:
+                        existing.company_id = company_id
+                else:
+                    db_job = JobPosting(
+                        source=job.source,
+                        source_job_id=job.source_job_id,
+                        company=job.company,
+                        company_id=company_id,
+                        title=job.title,
+                        url=job.url,
+                        category=job.category,
+                        seniority=job.seniority,
+                        location=job.location,
+                        currency=job.currency,
+                        salary_min=job.salary_min,
+                        salary_max=job.salary_max,
+                        is_remote=job.is_remote,
+                    )
+                    session.add(db_job)
 
-        # Drop jobs that vanished from the board (tracked ingests only). Skip when
-        # the fetch returned nothing: an empty result is far more likely a fetch
-        # failure than a genuinely empty board, and we won't wipe jobs on a hiccup.
-        if company_id is not None and seen_ids:
-            _remove_stale_jobs(session, company_id, seen_ids)
+            # Drop jobs that vanished from the board (tracked ingests only). Skip
+            # when the fetch returned nothing: an empty result is far more likely a
+            # fetch failure than a genuinely empty board, and we won't wipe jobs on
+            # a hiccup.
+            if company_id is not None and seen_ids:
+                _remove_stale_jobs(session, company_id, seen_ids)
 
-        session.commit()
-    except IntegrityError:
-        session.rollback()
-        raise
-    finally:
-        session.close()
+            session.commit()
+        except IntegrityError:
+            session.rollback()
+            raise
 
 
 def _remove_stale_jobs(session, company_id, seen_ids):
@@ -127,15 +126,12 @@ def _remove_stale_jobs(session, company_id, seen_ids):
 
 def get_stats() -> dict:
     """Summary counts and the most recent company sync time."""
-    session = get_session()
-    try:
+    with session_scope() as session:
         return {
             "total_jobs": session.query(func.count(JobPosting.id)).scalar(),
             "total_companies": session.query(func.count(Company.id)).scalar(),
             "last_sync": session.query(func.max(Company.last_synced_at)).scalar(),
         }
-    finally:
-        session.close()
 
 
 def mark_company_synced(company_id) -> None:
@@ -144,14 +140,11 @@ def mark_company_synced(company_id) -> None:
     Called on every successful ingest, so "last sync" advances even when no job
     data changed (unlike job.updated_at, which only moves on an actual change).
     """
-    session = get_session()
-    try:
+    with session_scope() as session:
         session.query(Company).filter(Company.id == company_id).update(
             {Company.last_synced_at: func.now()}, synchronize_session=False
         )
         session.commit()
-    finally:
-        session.close()
 
 
 def _like_contains(column, value: str):
@@ -184,8 +177,7 @@ def get_jobs(
     """
     limit = max(1, min(limit, 100))
     offset = max(0, offset)
-    session = get_session()
-    try:
+    with session_scope() as session:
         # Eager-load the application so JobPosting.application_status is populated
         # before the session closes (avoids a detached-instance lazy load).
         q = session.query(JobPosting).options(joinedload(JobPosting.application))
@@ -235,41 +227,34 @@ def get_jobs(
         total = q.count()
         items = q.order_by(JobPosting.id.desc()).limit(limit).offset(offset).all()
         return items, total
-    finally:
-        session.close()
 
 
 def get_job(db_id: int) -> JobPosting | None:
     """Return a single job by primary key, or None if it does not exist."""
-    session = get_session()
-    try:
+    with session_scope() as session:
         q = session.query(JobPosting).options(joinedload(JobPosting.application))
         q = q.filter(JobPosting.id == db_id)
         return q.one_or_none()
-    finally:
-        session.close()
 
 
 def add_company(company_in: CompanyCreate) -> Company | None:
     """Create a tracked company, or return None if (source, company, board) exists."""
-    session = get_session()
-    try:
-        db_company = Company(
-            source=company_in.source,
-            company=company_in.company,
-            board=company_in.board,
-            sector=company_in.sector,
-            size=company_in.size,
-        )
-        session.add(db_company)
-        session.commit()
-        session.refresh(db_company)
-        return db_company
-    except IntegrityError:
-        session.rollback()
-        return None
-    finally:
-        session.close()
+    with session_scope() as session:
+        try:
+            db_company = Company(
+                source=company_in.source,
+                company=company_in.company,
+                board=company_in.board,
+                sector=company_in.sector,
+                size=company_in.size,
+            )
+            session.add(db_company)
+            session.commit()
+            session.refresh(db_company)
+            return db_company
+        except IntegrityError:
+            session.rollback()
+            return None
 
 
 def get_companies(limit: int, offset: int = 0) -> tuple[list[Company], int]:
@@ -277,16 +262,13 @@ def get_companies(limit: int, offset: int = 0) -> tuple[list[Company], int]:
 
     Limit is clamped between 1 and 500; offset is clamped to >= 0.
     """
-    session = get_session()
     limit = max(1, min(limit, 500))
     offset = max(0, offset)
-    try:
+    with session_scope() as session:
         q = session.query(Company)
         total = q.count()
         items = q.order_by(Company.company.asc()).limit(limit).offset(offset).all()
         return items, total
-    finally:
-        session.close()
 
 
 def delete_company_by_id(db_id: int) -> bool:
@@ -299,15 +281,15 @@ def delete_company_by_id(db_id: int) -> bool:
 
     Returns True if the company existed and was deleted, else False.
     """
-    session = get_session()
-    try:
+    with session_scope() as session:
         company = session.query(Company).filter(Company.id == db_id).one_or_none()
 
         if company is None:
             return False
 
-        # Match postings linked by the company_id FK OR by the legacy (company, source)
-        # strings, so a name mismatch can't leave an orphan referencing this company.
+        # Match postings linked by the company_id FK OR by the legacy (company,
+        # source) strings, so a name mismatch can't leave an orphan referencing
+        # this company.
         posting_filter = or_(
             JobPosting.company_id == company.id,
             and_(
@@ -344,14 +326,10 @@ def delete_company_by_id(db_id: int) -> bool:
         session.commit()
         return True
 
-    finally:
-        session.close()
-
 
 def delete_job_by_id(db_id: int) -> bool:
     """Delete a single job and its application, if any. False if it does not exist."""
-    session = get_session()
-    try:
+    with session_scope() as session:
         job = session.query(JobPosting).filter(JobPosting.id == db_id).one_or_none()
         if job is None:
             return False
@@ -361,14 +339,11 @@ def delete_job_by_id(db_id: int) -> bool:
         session.delete(job)
         session.commit()
         return True
-    finally:
-        session.close()
 
 
 def delete_application_by_id(application_id: int) -> bool:
     """Delete a single application; the job is kept. False if it does not exist."""
-    session = get_session()
-    try:
+    with session_scope() as session:
         app_row = (
             session.query(JobApplication)
             .filter(JobApplication.id == application_id)
@@ -379,8 +354,6 @@ def delete_application_by_id(application_id: int) -> bool:
         session.delete(app_row)
         session.commit()
         return True
-    finally:
-        session.close()
 
 
 def _stamp_applied_at(db_app: JobApplication, applied_at_provided: bool) -> None:
@@ -405,36 +378,33 @@ def add_application(app_in: JobApplicationCreate) -> JobApplication | None | str
         None: if the referenced job does not exist
         "duplicate": if an application already exists for the job
     """
-    session = get_session()
-    try:
-        job = (
-            session.query(JobPosting)
-            .filter(JobPosting.id == app_in.job_posting_id)
-            .one_or_none()
-        )
+    with session_scope() as session:
+        try:
+            job = (
+                session.query(JobPosting)
+                .filter(JobPosting.id == app_in.job_posting_id)
+                .one_or_none()
+            )
 
-        if job is None:
-            return None
+            if job is None:
+                return None
 
-        db_app = JobApplication(
-            job_posting_id=app_in.job_posting_id,
-            status=app_in.status,
-            notes=app_in.notes,
-            applied_at=app_in.applied_at,
-        )
-        _stamp_applied_at(db_app, app_in.applied_at is not None)
+            db_app = JobApplication(
+                job_posting_id=app_in.job_posting_id,
+                status=app_in.status,
+                notes=app_in.notes,
+                applied_at=app_in.applied_at,
+            )
+            _stamp_applied_at(db_app, app_in.applied_at is not None)
 
-        session.add(db_app)
-        session.commit()
-        session.refresh(db_app)
-        return db_app
+            session.add(db_app)
+            session.commit()
+            session.refresh(db_app)
+            return db_app
 
-    except IntegrityError:
-        session.rollback()
-        return "duplicate"
-
-    finally:
-        session.close()
+        except IntegrityError:
+            session.rollback()
+            return "duplicate"
 
 
 def get_applications(
@@ -446,9 +416,7 @@ def get_applications(
     """
     limit = max(1, min(limit, 500))
     offset = max(0, offset)
-    session = get_session()
-
-    try:
+    with session_scope() as session:
         # Eager-load the job AND the job's application back-reference: the nested
         # JobOut exposes application_status, which would otherwise lazy-load the
         # relationship after the session is closed (DetachedInstanceError).
@@ -468,17 +436,12 @@ def get_applications(
         )
         return items, total
 
-    finally:
-        session.close()
-
 
 def update_application(
     application_id: int, app_update: JobApplicationUpdate
 ) -> JobApplication | None:
     """Update the application's set fields by id; return it, or None if not found."""
-    session = get_session()
-
-    try:
+    with session_scope() as session:
         db_app = (
             session.query(JobApplication)
             .filter(JobApplication.id == application_id)
@@ -498,6 +461,3 @@ def update_application(
         session.commit()
         session.refresh(db_app)
         return db_app
-
-    finally:
-        session.close()
