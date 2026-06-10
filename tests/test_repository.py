@@ -153,6 +153,16 @@ def test_get_jobs_search_by_title_substring_case_insensitive(clean_db):
     assert get_jobs(search="designer")[1] == 0
 
 
+def test_get_jobs_search_treats_like_wildcards_literally(clean_db):
+    upsert_jobs([_job(source_job_id="1", title="50% Travel Engineer")])
+    upsert_jobs([_job(source_job_id="2", title="Backend Engineer")])
+
+    # Unescaped, "%" would act as a LIKE wildcard and match both rows.
+    matched, total = get_jobs(search="50%")
+    assert total == 1
+    assert matched[0].title == "50% Travel Engineer"
+
+
 def test_get_jobs_filter_by_remote(clean_db):
     upsert_jobs([_job(source_job_id="1", location="Remote", is_remote=True)])
     upsert_jobs([_job(source_job_id="2", location="Boston, MA", is_remote=False)])

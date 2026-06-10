@@ -154,6 +154,16 @@ def mark_company_synced(company_id) -> None:
         session.close()
 
 
+def _like_contains(column, value: str):
+    """Case-insensitive 'contains' filter that treats LIKE wildcards literally.
+
+    % and _ (and the escape char) in user input are escaped, so a search for
+    "50%" matches the text "50%" instead of acting as a wildcard.
+    """
+    escaped = value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    return column.ilike(f"%{escaped}%", escape="\\")
+
+
 def get_jobs(
     company: str | None = None,
     limit: int = 25,
@@ -184,7 +194,7 @@ def get_jobs(
 
         # Case-insensitive substring match on the job title.
         if search:
-            q = q.filter(JobPosting.title.ilike(f"%{search}%"))
+            q = q.filter(_like_contains(JobPosting.title, search))
 
         if category is not None:
             q = q.filter(JobPosting.category == category)
@@ -194,7 +204,7 @@ def get_jobs(
 
         # Case-insensitive substring match, so "york" matches "New York, NY".
         if location:
-            q = q.filter(JobPosting.location.ilike(f"%{location}%"))
+            q = q.filter(_like_contains(JobPosting.location, location))
 
         if is_remote is not None:
             q = q.filter(JobPosting.is_remote == is_remote)
