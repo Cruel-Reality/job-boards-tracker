@@ -82,9 +82,9 @@ class JobPosting(Base):
     salary_max: Mapped[int | None] = mapped_column(Integer, nullable=True)
     is_remote: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
 
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, default=func.now(), onupdate=func.now()
+        DateTime(timezone=True), default=func.now(), onupdate=func.now()
     )
 
 
@@ -119,11 +119,11 @@ class Company(Base):
     size: Mapped[SizeEnum | None] = mapped_column(Enum(SizeEnum), nullable=True)
 
     # Set on each ingest run (even when no job data changed), powers "last sync".
-    last_synced_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    last_synced_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, default=func.now(), onupdate=func.now()
+        DateTime(timezone=True), default=func.now(), onupdate=func.now()
     )
 
 
@@ -147,8 +147,8 @@ class JobApplication(Base):
         Enum(JobStatusEnum), nullable=False, default=JobStatusEnum.unapplied
     )
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, default=func.now(), onupdate=func.now()
+        DateTime(timezone=True), default=func.now(), onupdate=func.now()
     )
-    applied_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    applied_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
