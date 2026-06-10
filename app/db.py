@@ -19,7 +19,9 @@ if DATABASE_URL is None:
 # When SQL_ECHO is truthy, SQLAlchemy logs every statement it runs. Off by default.
 SQL_ECHO = os.getenv("SQL_ECHO", "false").strip().lower() in {"1", "true", "yes"}
 
-engine = create_engine(DATABASE_URL, echo=SQL_ECHO)
+# pool_pre_ping checks a pooled connection is still alive before use, so an idle
+# connection dropped by a managed Postgres doesn't surface as a request error.
+engine = create_engine(DATABASE_URL, echo=SQL_ECHO, pool_pre_ping=True)
 
 SessionLocal = sessionmaker(bind=engine)
 
