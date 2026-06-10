@@ -6,7 +6,9 @@ database work to app.repository.
 
 import time
 
-from fastapi import FastAPI, HTTPException, Path, Query, status
+from fastapi import Depends, FastAPI, HTTPException, Path, Query, status
+
+from app.auth import require_api_key
 
 from app.models import (
     CompanyCreate,
@@ -75,7 +77,11 @@ def health():
     )
 
 
-@app.get("/sources/greenhouse", response_model=list[JobBase])
+@app.get(
+    "/sources/greenhouse",
+    response_model=list[JobBase],
+    dependencies=[Depends(require_api_key)],
+)
 async def greenhouse(
     board: str = Query(
         ...,
@@ -157,7 +163,7 @@ def job(
     return job
 
 
-@app.delete("/jobs/{db_id}")
+@app.delete("/jobs/{db_id}", dependencies=[Depends(require_api_key)])
 def delete_job(db_id: int):
     if not delete_job_by_id(db_id):
         raise HTTPException(status_code=404, detail=f"No job with id: {db_id} found")
@@ -184,7 +190,12 @@ def companies(
     )
 
 
-@app.post("/company", response_model=CompanyOut, status_code=status.HTTP_201_CREATED)
+@app.post(
+    "/company",
+    response_model=CompanyOut,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_api_key)],
+)
 async def create_company(company: CompanyCreate):
     # Reject sources we can't ingest, so a typo like "linkedin" never reaches the DB
     # and silently get skipped by /ingest/all.
@@ -217,7 +228,7 @@ async def create_company(company: CompanyCreate):
     return new_company
 
 
-@app.post("/ingest/all")
+@app.post("/ingest/all", dependencies=[Depends(require_api_key)])
 async def ingest_all():
     # Ingest sequentially for every tracked company. Capped at 500 to bound the
     # work in one request; companies fetch one at a time to stay simple and gentle
@@ -258,7 +269,7 @@ async def ingest_all():
     }
 
 
-@app.delete("/companies/{db_id}")
+@app.delete("/companies/{db_id}", dependencies=[Depends(require_api_key)])
 def delete_company(db_id: int):
     deleted = delete_company_by_id(db_id)
 
@@ -270,7 +281,11 @@ def delete_company(db_id: int):
     return {"status": "deleted"}
 
 
-@app.post("/applications", response_model=JobApplicationOut)
+@app.post(
+    "/applications",
+    response_model=JobApplicationOut,
+    dependencies=[Depends(require_api_key)],
+)
 def create_application(app_in: JobApplicationCreate):
     new_app = add_application(app_in)
 
@@ -303,7 +318,11 @@ def read_applications(
     )
 
 
-@app.patch("/applications/{application_id}", response_model=JobApplicationOut)
+@app.patch(
+    "/applications/{application_id}",
+    response_model=JobApplicationOut,
+    dependencies=[Depends(require_api_key)],
+)
 def patch_application(application_id: int, app_update: JobApplicationUpdate):
     updated_app = update_application(application_id, app_update)
 
@@ -315,7 +334,7 @@ def patch_application(application_id: int, app_update: JobApplicationUpdate):
     return updated_app
 
 
-@app.delete("/applications/{application_id}")
+@app.delete("/applications/{application_id}", dependencies=[Depends(require_api_key)])
 def delete_application(application_id: int):
     if not delete_application_by_id(application_id):
         raise HTTPException(

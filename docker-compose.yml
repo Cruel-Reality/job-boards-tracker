@@ -58,6 +58,8 @@ services:
     # This overrides the localhost value in .env, which is for running on the host.
     environment:
       DATABASE_URL: postgresql+psycopg://job_user:devpassword@db:5432/job_tracker
+      # Pulled from the project .env (compose substitutes ${...}); guards write routes.
+      API_KEY: ${API_KEY}
 
     # HOST:CONTAINER. Publishes the API on localhost:8000 for the browser/frontend.
     ports:

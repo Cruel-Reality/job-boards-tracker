@@ -15,7 +15,10 @@ from app.orm_models import (
     SizeEnum,
 )
 
-client = TestClient(app)
+# Default client carries a valid API key so the write-endpoint tests are allowed.
+client = TestClient(app, headers={"X-API-Key": "test-key"})
+# A client with no key, for asserting auth is enforced.
+keyless_client = TestClient(app)
 
 
 # ─── helpers ──────────────────────────────────────────────────────────────────
@@ -214,6 +217,23 @@ def test_sources_lists_supported_sources():
     response = client.get("/sources")
     assert response.status_code == 200
     assert "greenhouse" in response.json()
+
+
+def test_write_endpoint_requires_api_key():
+    # No X-API-Key header: the dependency rejects before the handler runs.
+    response = keyless_client.delete("/companies/1")
+    assert response.status_code == 401
+
+
+def test_write_endpoint_rejects_wrong_api_key():
+    response = keyless_client.delete("/companies/1", headers={"X-API-Key": "nope"})
+    assert response.status_code == 401
+
+
+def test_read_endpoint_is_public():
+    # Reads need no key.
+    response = keyless_client.get("/sources")
+    assert response.status_code == 200
 
 
 def test_create_company_rejects_unsupported_source():

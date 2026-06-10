@@ -13,8 +13,13 @@ from zoneinfo import ZoneInfo
 
 import httpx
 import streamlit as st
+from dotenv import load_dotenv
+
+load_dotenv()
 
 API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8000")
+# Sent as X-API-Key on write requests; reads work without it.
+API_KEY = os.getenv("API_KEY")
 PAGE_SIZE = 25
 
 # Backend timestamps are naive UTC (Postgres now()); display them in US Eastern.
@@ -66,8 +71,14 @@ st.set_page_config(page_title="Job Boards Tracker", layout="wide")
 
 def _request(method: str, path: str, **kwargs):
     """Call the API. Stop the app on connection errors; surface HTTP errors inline."""
+    headers = kwargs.pop("headers", {})
+    # Writes need the shared key; reads stay public.
+    if method != "GET" and API_KEY:
+        headers["X-API-Key"] = API_KEY
     try:
-        resp = httpx.request(method, f"{API_BASE_URL}{path}", timeout=30, **kwargs)
+        resp = httpx.request(
+            method, f"{API_BASE_URL}{path}", timeout=30, headers=headers, **kwargs
+        )
     except httpx.RequestError as exc:
         st.error(
             f"Cannot reach the API at {API_BASE_URL}: is the backend running? ({exc})"

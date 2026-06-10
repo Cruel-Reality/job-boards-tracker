@@ -7,6 +7,9 @@ os.environ["DATABASE_URL"] = os.environ.get(
     "postgresql+psycopg://job_user:devpassword@localhost:5432/job_tracker_test",
 )
 
+# A known API key so tests can exercise the auth-protected (write) endpoints.
+os.environ.setdefault("API_KEY", "test-key")
+
 import pytest  # noqa: E402
 from sqlalchemy.exc import OperationalError  # noqa: E402
 

@@ -52,6 +52,7 @@ Copy `.env.example` to `.env` and adjust as needed. `.env` is gitignored and mus
 | -------------- | -------------------------------------------------------- | -------------------------------------------------------------------- |
 | `DATABASE_URL` | Postgres connection string (matches the compose db).     | `postgresql+psycopg://job_user:devpassword@localhost:5432/job_tracker` |
 | `SQL_ECHO`     | When truthy, log every SQL statement (debugging).        | `false`                                                              |
+| `API_KEY`      | Shared secret for write/ingest endpoints (sent as `X-API-Key`). Reads are public. | `dev-local-key`                            |
 
 ## Common commands
 
