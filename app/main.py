@@ -4,6 +4,7 @@ Routes stay thin: request validation and response shaping only, and delegate all
 database work to app.repository.
 """
 
+import logging
 import time
 
 from fastapi import Depends, FastAPI, HTTPException, Path, Query, status
@@ -46,6 +47,8 @@ from app.repository import (
     upsert_jobs,
 )
 from app.sources.greenhouse import fetch_greenhouse_jobs
+
+logger = logging.getLogger(__name__)
 
 START_TIME = time.time()
 VERSION = "0.1.0"
@@ -213,6 +216,11 @@ async def create_company(company: CompanyCreate):
     try:
         await fetcher(board_token=company.board, company=company.company)
     except Exception:
+        logger.warning(
+            "Board validation failed for source=%s board=%s",
+            company.source,
+            company.board,
+        )
         raise HTTPException(
             status_code=400,
             detail=f"Could not load a '{company.source}' board for '{company.board}'. "
@@ -253,6 +261,12 @@ async def ingest_all():
             total_jobs += len(jobs)
             successful_companies += 1
         except Exception:
+            logger.exception(
+                "Ingest failed for company=%s source=%s board=%s",
+                company.company,
+                company.source,
+                company.board,
+            )
             failed_companies.append(
                 {
                     "company": company.company,
