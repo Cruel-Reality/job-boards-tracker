@@ -373,6 +373,20 @@ def delete_application_by_id(application_id: int) -> bool:
         session.close()
 
 
+def _stamp_applied_at(db_app: JobApplication, applied_at_provided: bool) -> None:
+    """Record applied_at the first time an application becomes 'applied'.
+
+    Skipped if the caller supplied applied_at explicitly, so an existing value is
+    never overwritten.
+    """
+    if (
+        db_app.status == JobStatusEnum.applied
+        and db_app.applied_at is None
+        and not applied_at_provided
+    ):
+        db_app.applied_at = func.now()
+
+
 def add_application(app_in: JobApplicationCreate) -> JobApplication | None | str:
     """Create job application.
 
@@ -398,6 +412,7 @@ def add_application(app_in: JobApplicationCreate) -> JobApplication | None | str
             notes=app_in.notes,
             applied_at=app_in.applied_at,
         )
+        _stamp_applied_at(db_app, app_in.applied_at is not None)
 
         session.add(db_app)
         session.commit()
@@ -467,6 +482,8 @@ def update_application(
 
         for field, val in update_data.items():
             setattr(db_app, field, val)
+
+        _stamp_applied_at(db_app, "applied_at" in update_data)
 
         session.commit()
         session.refresh(db_app)

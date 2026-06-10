@@ -1,6 +1,11 @@
 """Repository tests against a real database (skipped locally without a test DB)."""
 
-from app.models import CompanyCreate, JobApplicationCreate, JobBase
+from app.models import (
+    CompanyCreate,
+    JobApplicationCreate,
+    JobApplicationUpdate,
+    JobBase,
+)
 from app.orm_models import (
     JobCategoryEnum,
     JobStatusEnum,
@@ -19,6 +24,7 @@ from app.repository import (
     get_jobs,
     get_stats,
     mark_company_synced,
+    update_application,
     upsert_jobs,
 )
 
@@ -264,6 +270,31 @@ def test_delete_job_removes_job_and_application(clean_db):
     _, app_total = get_applications(limit=10)
     assert total == 0
     assert app_total == 0
+
+
+def test_marking_application_applied_stamps_applied_at(clean_db):
+    upsert_jobs([_job("1")])
+    jobs, _ = get_jobs()
+    app = add_application(
+        JobApplicationCreate(
+            job_posting_id=jobs[0].id, status=JobStatusEnum.unapplied
+        )
+    )
+    assert app.applied_at is None
+
+    updated = update_application(
+        app.id, JobApplicationUpdate(status=JobStatusEnum.applied)
+    )
+    assert updated.applied_at is not None
+
+
+def test_creating_applied_application_stamps_applied_at(clean_db):
+    upsert_jobs([_job("1")])
+    jobs, _ = get_jobs()
+    app = add_application(
+        JobApplicationCreate(job_posting_id=jobs[0].id, status=JobStatusEnum.applied)
+    )
+    assert app.applied_at is not None
 
 
 def test_delete_application_keeps_job(clean_db):
