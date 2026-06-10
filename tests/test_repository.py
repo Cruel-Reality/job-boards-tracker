@@ -286,9 +286,7 @@ def test_marking_application_applied_stamps_applied_at(clean_db):
     upsert_jobs([_job("1")])
     jobs, _ = get_jobs()
     app = add_application(
-        JobApplicationCreate(
-            job_posting_id=jobs[0].id, status=JobStatusEnum.unapplied
-        )
+        JobApplicationCreate(job_posting_id=jobs[0].id, status=JobStatusEnum.unapplied)
     )
     assert app.applied_at is None
 
