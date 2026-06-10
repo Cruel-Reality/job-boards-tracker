@@ -29,13 +29,13 @@ def normalize_job(raw: dict, company: str) -> JobBase:
     )
 
 
-async def fetch_greenhouse_jobs(board_token: str, company: str) -> list[JobBase]:
+async def fetch_greenhouse_jobs(board: str, company: str) -> list[JobBase]:
     """Fetch and normalize all jobs for a board.
 
     Raises httpx.HTTPStatusError on a non-2xx response (callers like /ingest/all
     catch this to record a failed company without aborting the whole run).
     """
-    url = build_jobs_url(board_token)
+    url = build_jobs_url(board)
 
     async with httpx.AsyncClient(timeout=20.0) as client:
         response = await client.get(url)

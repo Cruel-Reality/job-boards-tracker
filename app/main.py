@@ -95,7 +95,7 @@ async def greenhouse(
         description="Company name (ex: 'Stripe')",
     ),
 ) -> list[JobBase]:
-    jobs = await fetch_greenhouse_jobs(board_token=board, company=company)
+    jobs = await fetch_greenhouse_jobs(board=board, company=company)
     upsert_jobs(jobs)
     return jobs
 
@@ -214,7 +214,7 @@ async def create_company(company: CompanyCreate):
     # of silently producing no jobs at ingest time. A real board with zero open
     # roles still fetches successfully, so only a failed fetch is rejected.
     try:
-        await fetcher(board_token=company.board, company=company.company)
+        await fetcher(board=company.board, company=company.company)
     except Exception:
         logger.warning(
             "Board validation failed for source=%s board=%s",
@@ -253,7 +253,7 @@ async def ingest_all():
             continue
         try:
             jobs = await fetcher(
-                board_token=company.board,
+                board=company.board,
                 company=company.company,
             )
             upsert_jobs(jobs, company_id=company.id)
