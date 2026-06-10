@@ -26,6 +26,10 @@ from app.seniority import classify_seniority
         # No seniority signal -> None.
         ("Software Engineer", None),
         ("Data Scientist", None),
+        # Whole-word matching: "internal"/"international" must not read as intern.
+        ("Internal Communications Manager", SeniorityEnum.manager),
+        ("Internal Auditor", None),
+        ("International Sales Lead", SeniorityEnum.lead),
     ],
 )
 def test_classify_seniority(title, expected):
